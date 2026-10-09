@@ -4,7 +4,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { presets } from './presets.js';
 import { createStore } from './store.js';
-import { createProject, cleanPreset, nextJob, caseSetupJob, cancelJob, acceptResponse, previewResponse, patchSetup, exportPreset, exportStory } from './engine.js';
+import { createProject, cleanPreset, validatePreset, nextJob, caseSetupJob, cancelJob, acceptResponse, previewResponse, patchSetup, exportPreset, exportStory } from './engine.js';
+import { buildSetupPrompt, importSetup } from './creator.js';
 import { readerView } from './mystery.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -41,7 +42,13 @@ export async function buildApp({ store, logger = false } = {}) {
   app.get('/api/health', async () => ({ ok: true, storage: store.mode }));
   app.get('/api/presets', async () => presets.map(p => ({ id: p.id, ...cleanPreset(p) })));
   app.get('/api/projects', async () => store.list());
-  app.post('/api/projects', { schema: { body: objectBody({ name: { type: 'string', maxLength: 120 }, preset_id: { type: 'string' }, preset: { type: 'object' }, config: { type: 'object' } }) } }, async (req, reply) => reply.code(201).send(await store.create(createProject(req.body))));
+  app.post('/api/setup/prompt', { schema: { body: objectBody({ name: { type: 'string' }, genre: { type: 'string' }, idea: { type: 'string' }, constraints: { type: 'string' }, voice: { type: 'string' }, words: { type: 'number' }, character_count: { type: 'number' } }) } }, req => buildSetupPrompt(req.body));
+  app.post('/api/setup/preview', { schema: { body: rawBody } }, req => {
+    const result = importSetup(req.body.raw);
+    validatePreset(result.preset);
+    return { valid: true, ...result };
+  });
+  app.post('/api/projects', { schema: { body: objectBody({ name: { type: 'string', maxLength: 120 }, preset_id: { type: 'string' }, preset: { type: 'object' }, custom: { type: 'object' }, config: { type: 'object' } }) } }, async (req, reply) => reply.code(201).send(await store.create(createProject(req.body))));
   app.get('/api/projects/:id', { schema: { params } }, req => store.get(req.params.id));
   app.get('/api/projects/:id/reader', { schema: { params } }, async req => readerView(await store.get(req.params.id)));
   app.patch('/api/projects/:id/setup', { schema: { params, body: objectBody({ name: { type: 'string', maxLength: 120 }, preset: { type: 'object' }, config: { type: 'object' } }) } }, async req => store.mutate(req.params.id, p => { patchSetup(p, req.body); return p; }));

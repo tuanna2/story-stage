@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { presets, defaultConfig } from './presets.js';
-import { parseSchema, parseResponse, presetSchema, configSchema, batchResponseSchema, actorResponseSchema, resolutionResponseSchema, narrationResponseSchema, caseSetupResponseSchema, DomainError } from './schema.js';
+import { parseSchema, presetSchema, configSchema, batchResponseSchema, actorResponseSchema, resolutionResponseSchema, narrationResponseSchema, caseSetupResponseSchema, DomainError } from './schema.js';
+import { importResponse } from './response-import.js';
+import { buildCustomPreset } from './creator.js';
 import { buildPrompt, actorOrder } from './prompts.js';
 import { remember, summarizeScene } from './memory.js';
 import { hydrateMystery, initializeMystery, validateCasefile, validateClaims, validateInterpretations, applyDiscoveries, validateEvidenceReveal, applyReaderUpdates, pacingView } from './mystery.js';
@@ -12,8 +14,9 @@ export function cleanPreset(preset) {
   p.characters = p.characters.map(({ memories, ...c }) => c);
   return p;
 }
-export function createProject({ name, preset_id = 'interrogation', preset, config = {} }) {
-  const base = preset || cleanPreset(presets.find(x => x.id === preset_id) || (() => { throw new DomainError('Không tìm thấy preset.'); })());
+export function createProject({ name, preset_id = 'interrogation', preset, custom, config = {} }) {
+  assert(!(preset && custom), 'Chọn một dàn dựng: preset hoặc ý tưởng riêng.');
+  const base = custom ? buildCustomPreset(custom) : preset || cleanPreset(presets.find(x => x.id === preset_id) || (() => { throw new DomainError('Không tìm thấy preset.'); })());
   const parsed = parseSchema(presetSchema, base);
   validatePreset(parsed);
   const project = { ...parsed, id: uid('p'), name: name?.trim() || parsed.name, config: parseSchema(configSchema, { ...defaultConfig, ...config }), revision: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'running', scenes: [], exchanges: [], pending_job_id: null, pending_action: null, next_actor_id: null, memory_sequence: 0 };
@@ -80,6 +83,7 @@ export function previewResponse(project, jobId, raw) {
   const response = acceptResponse(copy, jobId, raw);
   const before = project.scenes.at(-1), scene = copy.scenes.find(s => s.id === before.id);
   return { valid: true, kind: response.kind, next_status: copy.status === 'complete' ? 'complete' : copy.pending_action ? 'awaiting_resolution' : copy.scenes.at(-1).status,
+    normalized_response: response, import_notes: copy.exchanges.find(j => j.id === jobId).import_notes,
     scene: { title: scene.title, status: scene.status, pov_id: scene.pov_id, end_reason: scene.end_reason },
     new_turns: scene.turns.slice(before.turns.length), new_facts: copy.world.facts.filter(f => !project.world.facts.some(old => old.id === f.id)),
     changed_moods: copy.characters.filter((c, i) => Object.keys(c.mood).some(k => c.mood[k] !== project.characters[i].mood[k])).map(c => ({ id: c.id, name: c.name, mood: c.mood })),
@@ -108,7 +112,8 @@ function applyResponse(project, jobId, raw) {
   if (!job || job.status !== 'pending' || project.pending_job_id !== jobId) throw new DomainError('Prompt đã được nhập hoặc bị hủy. Không thể nhập lần thứ hai.', 409);
   if (job.revision !== project.revision) throw new DomainError('Prompt thuộc phiên bản cũ. Hãy tạo prompt mới từ trạng thái hiện tại.', 409);
   const schemas = { simulation: batchResponseSchema, character: actorResponseSchema, resolution: resolutionResponseSchema, narration: narrationResponseSchema, case_setup: caseSetupResponseSchema };
-  const response = parseSchema(schemas[job.kind], parseResponse(raw));
+  const imported = importResponse(raw, project, job);
+  const response = parseSchema(schemas[job.kind], imported.value);
   assert(response.exchange_id === job.id && response.revision === project.revision && response.scene_number === job.scene_number, 'exchange_id, revision hoặc scene_number không khớp prompt.');
   const scene = project.scenes.at(-1);
   if (job.kind === 'case_setup') {
@@ -164,7 +169,7 @@ function applyResponse(project, jobId, raw) {
     if (project.scenes.length >= project.config.max_scenes || !project.characters.some(c => c.status === 'active')) project.status = 'complete';
     else addScene(project);
   }
-  job.status = 'consumed'; job.raw_response = raw; job.response = response; job.consumed_at = new Date().toISOString();
+  job.status = 'consumed'; job.raw_response = raw; job.response = response; job.import_notes = imported.notes; job.consumed_at = new Date().toISOString();
   project.pending_job_id = null;
   project.revision++; project.updated_at = new Date().toISOString();
   job.consumed_revision = project.revision;

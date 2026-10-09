@@ -65,7 +65,7 @@ function render() {
       <div class="brand"><span class="brand-mark">${icon('spark')}</span>story stage<span style="color:#8d83a7;font-weight:400">.</span></div>
       <p class="sidebar-label">Phòng viết</p>
       <nav>${nav.map(([v, i]) => `<button class="nav-button ${state.view === v ? 'active' : ''}" data-action="nav" data-view="${v}">${icon(i)}${labels[v]}${v === 'exchange' && state.job ? '<span class="count">1</span>' : ''}</button>`).join('')}</nav>
-      <div class="library"><p class="sidebar-label">Truyện của bạn</p>${state.projects.slice(0, 8).map(x => `<button class="project-link ${p?.id === x.id ? 'selected' : ''}" data-action="project" data-id="${esc(x.id)}" title="${esc(x.name)}">${esc(x.name)}</button>`).join('')}<button class="new-project" data-action="new">${icon('plus')}Dàn dựng truyện mới</button></div>
+      <div class="library"><p class="sidebar-label">Truyện của bạn</p><div class="project-list">${state.projects.map(x => `<button class="project-link ${p?.id === x.id ? 'selected' : ''}" data-action="project" data-id="${esc(x.id)}" title="${esc(x.name)}">${esc(x.name)}</button>`).join('')}</div><button class="new-project" data-action="new">${icon('plus')}Dàn dựng truyện mới</button></div>
       <div class="library"><button class="nav-button ${state.view === 'history' ? 'active' : ''}" data-action="nav" data-view="history">${icon('history')}${labels.history}</button><button class="nav-button ${state.view === 'research' ? 'active' : ''}" data-action="nav" data-view="research">${icon('research')}${labels.research}</button></div>
       <div class="sidebar-bottom"><strong>${state.storage === 'mysql' ? 'Lưu bằng MySQL' : 'Bản thử · lưu trong file'}</strong>Trao đổi thủ công với ChatGPT</div>
     </aside>
@@ -88,7 +88,7 @@ function renderView() {
   }
 }
 function renderWelcome() {
-  return `<div class="welcome"><div class="welcome-intro"><p class="eyebrow">Một thế giới. Nhiều ý muốn.</p><h1>Đưa các nhân vật lên sân khấu.</h1><p>Bắt đầu từ một tình huống mở. Cho mỗi nhân vật ký ức và động cơ riêng, rồi để câu chuyện xuất hiện từ những lựa chọn của họ.</p></div><div class="preset-grid">${state.presets.map((p, i) => `<article class="preset-card"><div class="preset-art">${icon(i ? 'world' : 'stage')}<span class="line-art">${String(i + 1).padStart(2, '0')}</span></div><div class="preset-body">${badge(p.casefile ? 'Phase 2 · Hồ sơ sẵn' : p.genre)}<h2>${esc(p.name)}</h2><p>${esc(p.description)}</p><div class="button-row"><button class="btn primary" data-action="new" data-preset="${esc(p.id)}">${icon('play')}Dàn dựng câu chuyện</button><span class="text-helper">${p.characters.length} nhân vật</span></div></div></article>`).join('')}</div><div class="welcome-guide">${icon('info')}<p>Mỗi cụm lượt: sao chép prompt, gửi vào ChatGPT, dán JSON trở lại và duyệt kết quả. Cuối cảnh, Người kể chuyện chuyển các sự kiện đã xảy ra thành văn xuôi. Bạn có thể chỉnh thế giới, dàn vai và cách kể trước khi bắt đầu.</p></div></div>`;
+  return `<div class="welcome"><div class="welcome-intro"><p class="eyebrow">Một thế giới. Nhiều ý muốn.</p><h1>Đưa các nhân vật lên sân khấu.</h1><p>Bắt đầu từ một tình huống mở. Cho mỗi nhân vật ký ức và động cơ riêng, rồi để câu chuyện xuất hiện từ những lựa chọn của họ.</p><button class="btn primary" data-action="new">${icon('plus')}Bắt đầu từ ý tưởng riêng</button></div><div class="preset-grid">${state.presets.map((p, i) => `<article class="preset-card"><div class="preset-art">${icon(i ? 'world' : 'stage')}<span class="line-art">${String(i + 1).padStart(2, '0')}</span></div><div class="preset-body">${badge(p.casefile ? 'Phase 2 · Hồ sơ sẵn' : p.genre)}<h2>${esc(p.name)}</h2><p>${esc(p.description)}</p><div class="button-row"><button class="btn primary" data-action="new" data-preset="${esc(p.id)}">${icon('play')}Dàn dựng câu chuyện</button><span class="text-helper">${p.characters.length} nhân vật</span></div></div></article>`).join('')}</div><div class="welcome-guide">${icon('info')}<p>Mỗi cụm lượt: sao chép prompt, gửi vào ChatGPT, dán JSON trở lại và duyệt kết quả. Cuối cảnh, Người kể chuyện chuyển các sự kiện đã xảy ra thành văn xuôi. Bạn có thể chỉnh thế giới, dàn vai và cách kể trước khi bắt đầu.</p></div></div>`;
 }
 function renderStage() {
   const p = state.project, s = selectedScene(), active = current();
@@ -110,10 +110,10 @@ function renderTurn(t) {
 function renderExchange() {
   const p = state.project, j = state.job;
   return `${heading('Trao đổi với ChatGPT', 'Prompt đã có đủ trạng thái. Dán câu trả lời trở lại để kiểm tra và tiếp tục.', j ? badge(kinds[j.kind]) : '', 'Cầu nối thủ công')}
-  <div class="protocol"><div>${icon('copy')}<span><strong>1. Sao chép prompt</strong><small>Gửi vào ChatGPT</small></span></div><div>${icon('exchange')}<span><strong>2. Dán câu trả lời</strong><small>Chỉ cần đối tượng JSON</small></span></div><div>${icon('check')}<span><strong>3. Duyệt & nhập</strong><small>Cập nhật trạng thái mô phỏng</small></span></div></div>
+  <div class="protocol"><div>${icon('copy')}<span><strong>1. Sao chép prompt</strong><small>Gửi vào ChatGPT</small></span></div><div>${icon('exchange')}<span><strong>2. Dán câu trả lời</strong><small>Có thể kèm lời dẫn và Markdown</small></span></div><div>${icon('check')}<span><strong>3. Duyệt & nhập</strong><small>Cập nhật trạng thái mô phỏng</small></span></div></div>
   ${!j ? `<section class="panel"><div class="panel-body"><h2>${p.status === 'complete' ? 'Mô phỏng đã hoàn tất' : 'Sẵn sàng cho bước tiếp theo'}</h2><p class="subtitle">${p.status === 'complete' ? 'Đọc bản thảo hoặc tạo một truyện mới từ dàn dựng khác.' : `Cảnh ${current().number} · ${p.config.mode === 'batch' ? 'Gộp lượt' : 'Tách nhân vật'} · ${budget(p.config)} lần trao đổi/cảnh ở giới hạn tối đa.`}</p>${p.status !== 'complete' ? `<label class="field" style="margin-top:23px"><span>Chỉ dẫn dàn dựng cho lượt này (không bắt buộc)</span><textarea id="guidance" placeholder="Ví dụ: giữ cảnh tập trung vào cuộc trò chuyện; để nhân vật tự quyết định."></textarea><p class="text-helper">Chỉ dẫn không thay thế luật thế giới và không sửa những việc đã xảy ra.</p></label><button class="btn primary" data-action="next">${icon('play')}Tạo prompt</button>` : `<button class="btn primary" style="margin-top:23px" data-action="nav" data-view="manuscript">${icon('book')}Đọc bản thảo</button>`}</div></section>` : `
   <div class="exchange-grid"><section class="panel"><div class="panel-head"><div class="panel-title">${icon('copy')}<h2>Prompt gửi đi</h2></div><span class="badge gray">Cảnh ${j.scene_number} · v${j.revision}</span></div><div class="panel-body"><div class="exchange-title">${badge(kinds[j.kind])}<small>${j.actor_ids.map(id => esc(nameOf(id))).join(', ')}</small></div><textarea class="prompt-text" id="prompt-text" aria-label="Prompt gửi ChatGPT" readonly>${esc(j.prompt)}</textarea><div class="button-row" style="margin-top:15px"><button class="btn primary" data-action="copy-prompt">${icon('copy')}Sao chép prompt</button><a class="btn secondary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Mở ChatGPT</a><button class="btn ghost small" data-action="cancel-job">Hủy prompt</button></div><p class="text-helper">${j.kind === 'character' ? 'Dùng cuộc trò chuyện riêng của nhân vật này. Đừng gửi vào cuộc trò chuyện đã thấy bí mật của nhân vật khác.' : p.config.mode === 'isolated' ? 'Dùng cuộc trò chuyện dành cho vai trò này, tách khỏi cuộc trò chuyện của các nhân vật.' : 'Câu trả lời cần giữ nguyên exchange_id và revision có trong prompt.'}</p></div></section>
-  <section class="panel"><div class="panel-head"><div class="panel-title">${icon('exchange')}<h2>Câu trả lời nhận về</h2></div>${badge('Chờ bạn dán', 'amber')}</div><div class="panel-body"><textarea class="prompt-text" id="raw-response" placeholder="Dán toàn bộ JSON từ ChatGPT vào đây…" aria-label="Câu trả lời JSON">${esc(state.raw)}</textarea><div class="button-row" style="margin-top:15px"><button class="btn primary" data-action="preview">${icon('check')}Kiểm tra & xem trước</button><button class="btn secondary" data-action="repair">${icon('copy')}Prompt sửa JSON</button></div><p class="text-helper">Bản dán được giữ trên trình duyệt này cho đến khi nhập thành công.</p><div id="response-error">${renderError(state.error)}</div></div></section></div><div id="response-preview">${renderPreview()}</div>`}`;
+  <section class="panel"><div class="panel-head"><div class="panel-title">${icon('exchange')}<h2>Câu trả lời nhận về</h2></div>${badge('Chờ bạn dán', 'amber')}</div><div class="panel-body"><textarea class="prompt-text" id="raw-response" placeholder="Dán toàn bộ câu trả lời ChatGPT vào đây…" aria-label="Câu trả lời JSON">${esc(state.raw)}</textarea><div class="button-row" style="margin-top:15px"><button class="btn primary" data-action="preview">${icon('check')}Kiểm tra & xem trước</button><button class="btn secondary" data-action="repair">${icon('copy')}Prompt sửa câu trả lời</button></div><p class="text-helper">${j.kind === 'narration' ? p.casefile ? 'Vụ án cần JSON gồm prose, reader_updates và editorial_check để kiểm tra nguồn tiết lộ.' : 'Bước Người kể này nhận cả JSON lẫn văn xuôi thuần; POV và lượt nguồn lấy từ cảnh đã mô phỏng.' : 'Nhận JSON kèm lời dẫn/Markdown và chuẩn hóa lỗi cú pháp phổ biến.'} Bản dán được giữ đến khi nhập thành công; đọc bản chuẩn hóa trước khi lưu.</p><div id="response-error">${renderError(state.error)}</div></div></section></div><div id="response-preview">${renderPreview()}</div>`}`;
 }
 function renderError(error) {
   if (!error) return '';
@@ -122,7 +122,7 @@ function renderError(error) {
 function renderPreview() {
   const v = state.preview;
   if (!v) return '';
-  return `<section class="panel review-panel"><div class="panel-head"><div class="panel-title">${icon('check')}<h2>Kết quả sẽ được nhập</h2></div>${badge('Cấu trúc hợp lệ', 'green')}</div><div class="panel-body">${v.casefile_created ? '' : v.prose ? `<div class="review-prose">${esc(v.prose)}</div>` : `<div class="review-columns"><div><h3 style="margin-bottom:12px">${v.proposed_action ? 'Hành động dự định' : 'Diễn biến mới'}</h3>${v.proposed_action ? `<div class="review-item"><strong>${esc(nameOf(v.proposed_action.actor_id))}</strong>${esc(v.proposed_action.action)}<br><br>Nội tâm: ${esc(v.proposed_action.thought)}</div>` : v.new_turns.map(t => `<div class="review-item"><strong>Lượt ${t.number} · ${esc(nameOf(t.actor_id))}</strong>${esc(t.action)}<br><br>Kết quả: ${esc(t.outcome)}${t.world_event ? `<br><br>Sự kiện: ${esc(t.world_event.text)}` : ''}</div>`).join('')}</div><div><h3 style="margin-bottom:12px">Thông tin & cảm xúc</h3>${v.reveals.map(f => `<div class="review-item"><strong>${esc(f.id)}</strong>${esc(f.text)}<br>Người biết: ${f.known_by.length ? f.known_by.map(id => esc(nameOf(id))).join(', ') : 'Chỉ Thế giới'}</div>`).join('')}${v.changed_moods.map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>${Object.entries(c.mood).map(([k, value]) => `${moods[k]}: ${value}`).join(' · ')}</div>`).join('')}${(v.changed_statuses || []).map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>Trạng thái mới: ${statuses[c.status]}</div>`).join('')}${!v.reveals.length && !v.changed_moods.length && !v.changed_statuses?.length ? '<p class="summary-text">Chưa có cập nhật sự thật hoặc cảm xúc ở bước này.</p>' : ''}</div></div>`}${renderMysteryPreview(v)}<div class="info-note">${icon('info')}<span>Cấu trúc và phạm vi người biết đã được kiểm tra. Đọc lại kết quả để xác nhận nguyên nhân, cảm giác của POV và tính hợp lý của câu chuyện.</span></div><div class="button-row right" style="margin-top:20px"><button class="btn secondary" data-action="discard-preview">Quay lại chỉnh JSON</button><button class="btn primary" data-action="commit">${icon('check')}Nhập kết quả & tiếp tục</button></div></div></section>`;
+  return `<section class="panel review-panel"><div class="panel-head"><div class="panel-title">${icon('check')}<h2>Kết quả sẽ được nhập</h2></div>${badge('Cấu trúc hợp lệ', 'green')}</div><div class="panel-body">${v.import_notes?.length ? `<div class="normalization-note"><h3>Web đã chuẩn hóa bản dán</h3><ul>${v.import_notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}<details class="normalized-output"><summary>Xem JSON sẽ được lưu</summary><pre class="large-json">${esc(JSON.stringify(v.normalized_response, null, 2))}</pre><button class="btn secondary small" data-action="copy-normalized">Sao chép JSON chuẩn hóa</button></details>${v.casefile_created ? '' : v.prose ? `<div class="review-prose">${esc(v.prose)}</div>` : `<div class="review-columns"><div><h3 style="margin-bottom:12px">${v.proposed_action ? 'Hành động dự định' : 'Diễn biến mới'}</h3>${v.proposed_action ? `<div class="review-item"><strong>${esc(nameOf(v.proposed_action.actor_id))}</strong>${esc(v.proposed_action.action)}<br><br>Nội tâm: ${esc(v.proposed_action.thought)}</div>` : v.new_turns.map(t => `<div class="review-item"><strong>Lượt ${t.number} · ${esc(nameOf(t.actor_id))}</strong>${esc(t.action)}<br><br>Kết quả: ${esc(t.outcome)}${t.world_event ? `<br><br>Sự kiện: ${esc(t.world_event.text)}` : ''}</div>`).join('')}</div><div><h3 style="margin-bottom:12px">Thông tin & cảm xúc</h3>${v.reveals.map(f => `<div class="review-item"><strong>${esc(f.id)}</strong>${esc(f.text)}<br>Người biết: ${f.known_by.length ? f.known_by.map(id => esc(nameOf(id))).join(', ') : 'Chỉ Thế giới'}</div>`).join('')}${v.changed_moods.map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>${Object.entries(c.mood).map(([k, value]) => `${moods[k]}: ${value}`).join(' · ')}</div>`).join('')}${(v.changed_statuses || []).map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>Trạng thái mới: ${statuses[c.status]}</div>`).join('')}${!v.reveals.length && !v.changed_moods.length && !v.changed_statuses?.length ? '<p class="summary-text">Chưa có cập nhật sự thật hoặc cảm xúc ở bước này.</p>' : ''}</div></div>`}${renderMysteryPreview(v)}<div class="info-note">${icon('info')}<span>Cấu trúc và phạm vi người biết đã được kiểm tra. Đọc lại kết quả để xác nhận nguyên nhân, cảm giác của POV và tính hợp lý của câu chuyện.</span></div><div class="button-row right" style="margin-top:20px"><button class="btn secondary" data-action="discard-preview">Quay lại chỉnh JSON</button><button class="btn primary" data-action="commit">${icon('check')}Nhập kết quả & tiếp tục</button></div></div></section>`;
 }
 function moodBars(c) { return `<div class="moods">${Object.entries(c.mood).map(([key, value]) => `<div class="mood-item"><div><span>${moods[key]}</span><span>${value}/100</span></div><div class="mood-bar"><div style="width:${value}%;--color:${esc(c.color)}"></div></div></div>`).join('')}</div>`; }
 function renderCharacters() {
@@ -187,11 +187,70 @@ function configInputs(c) {
   return `<div class="radio-cards"><label class="radio-card"><input type="radio" name="mode" value="batch" ${c.mode === 'batch' ? 'checked' : ''}><strong>Gộp lượt · ít thao tác</strong><small>2–3 lần trao đổi/cảnh. Một phiên ChatGPT đóng nhiều vai, giữ bí mật bằng chỉ dẫn.</small></label><label class="radio-card"><input type="radio" name="mode" value="isolated" ${c.mode === 'isolated' ? 'checked' : ''}><strong>Tách nhân vật · dữ liệu riêng</strong><small>Mỗi nhân vật có prompt riêng, rồi Thế giới phân xử. Dùng các cuộc trò chuyện riêng.</small></label></div><div class="setup-controls"><label class="field"><span>Số cảnh tối đa</span><input class="input" name="max_scenes" type="number" min="1" max="30" value="${c.max_scenes}" required></label><label class="field"><span>Lượt mỗi cảnh</span><input class="input" name="max_turns" type="number" min="1" max="20" value="${c.max_turns}" required></label><label class="field"><span>Lượt gộp / prompt</span><select name="batch_size">${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${n === c.batch_size ? 'selected' : ''}>${n} lượt</option>`).join('')}</select></label><label class="field"><span>Ký ức gửi mỗi nhân vật</span><input class="input" name="memory_limit" type="number" min="4" max="24" value="${c.memory_limit}" required></label></div><div class="budget"><span class="budget-total" id="budget-count">${budget(c)} <span>lần trao đổi / cảnh</span></span><p>Số lần tối đa theo cấu hình. Cảnh có thể kết thúc sớm.</p></div>`;
 }
 function readConfig(form) { return Object.fromEntries(['mode', 'max_scenes', 'max_turns', 'batch_size', 'memory_limit'].map(key => [key, key === 'mode' ? new FormData(form).get(key) : Number(form.elements[key].value)])); }
-function openNew(presetId = 'rain-case') {
+const blankCharacter = () => ({ name: '', role: '', personality: '', background: '', goals: [], secret: '', limitations: [] });
+const lines = text => text.split('\n').map(x => x.trim()).filter(Boolean);
+let creator = null;
+function openNew(presetId) {
+  creator = {
+    mode: presetId ? 'preset' : 'manual', presetId: presetId || 'rain-case', presetJSON: null, presetName: null,
+    config: { mode: 'batch', max_scenes: presetId && state.presets.find(p => p.id === presetId)?.casefile ? 8 : 6, max_turns: 6, batch_size: 3, memory_limit: 12 },
+    manual: { name: '', genre: '', premise: '', setting: '', location: '', time: '',
+      rules: ['Mỗi nhân vật chỉ biết những gì mình đã quan sát hoặc được kể.', 'Hành động có hệ quả theo quy tắc của thế giới; kết cục để mở.'],
+      voice: 'Văn xuôi tiếng Việt, POV giới hạn, đối thoại tự nhiên.', guidance: 'Kể từ sự kiện đã mô phỏng; để động cơ riêng dẫn dắt lựa chọn.', words: 900,
+      characters: [blankCharacter(), blankCharacter()] },
+    brief: { name: '', genre: '', idea: '', constraints: '', character_count: 4, voice: 'Văn xuôi tiếng Việt, POV giới hạn, đối thoại tự nhiên.', words: 900 },
+    prompt: '', raw: '', preview: null, reviewedRaw: null, error: null,
+  };
+  renderCreator();
+}
+function creatorTabs() {
+  return `<div class="creator-tabs" role="tablist" aria-label="Cách tạo truyện">${[['manual', 'Tự dàn dựng'], ['ai', 'Nhờ ChatGPT'], ['preset', 'Dùng preset']].map(([mode, label]) => `<button type="button" role="tab" aria-selected="${creator.mode === mode}" data-action="creator-mode" data-mode="${mode}">${label}</button>`).join('')}</div>`;
+}
+function creatorField(key, label, value, { multiline = false, required = true, placeholder = '', max = 12000 } = {}) {
+  return `<label class="field"><span>${esc(label)}</span>${multiline ? `<textarea name="${key}" maxlength="${max}" ${required ? 'required' : ''} placeholder="${esc(placeholder)}">${esc(value)}</textarea>` : `<input class="input" name="${key}" maxlength="${max}" value="${esc(value)}" ${required ? 'required' : ''} placeholder="${esc(placeholder)}">`}</label>`;
+}
+function creatorCharacter(c, i) {
+  return `<fieldset class="creator-character" data-index="${i}"><legend>Nhân vật ${i + 1}</legend><div class="creator-pair">${creatorField('char_name', 'Tên nhân vật', c.name, { max: 120 })}${creatorField('char_role', 'Vai trò', c.role, { max: 200 })}</div>${creatorField('char_personality', 'Tính cách', c.personality, { multiline: true, placeholder: 'Cách phản ứng, ưu điểm và điểm yếu' })}${creatorField('char_background', 'Câu chuyện nền', c.background, { multiline: true })}${creatorField('char_goals', 'Mục tiêu riêng · mỗi dòng một mục tiêu', c.goals.join('\n'), { multiline: true })}${creatorField('char_secret', 'Bí mật riêng (không bắt buộc)', c.secret, { multiline: true, required: false })}${creatorField('char_limitations', 'Giới hạn · mỗi dòng một điều', c.limitations.join('\n'), { multiline: true, required: false })}<button type="button" class="btn ghost small" data-action="creator-remove" data-index="${i}" ${creator.manual.characters.length <= 2 ? 'disabled' : ''}>Bỏ nhân vật ${i + 1}</button></fieldset>`;
+}
+function captureCreator() {
+  const form = $('#custom-form') || $('#ai-brief-form') || $('#new-form');
+  if (!form) return;
+  creator.config = readConfig(form);
+  if (form.id === 'custom-form') {
+    for (const key of ['name', 'genre', 'premise', 'setting', 'location', 'time', 'voice', 'guidance']) creator.manual[key] = form.elements[key].value;
+    creator.manual.words = Number(form.elements.words.value); creator.manual.rules = lines(form.elements.rules.value);
+    creator.manual.characters = [...form.querySelectorAll('.creator-character')].map(card => {
+      const get = key => $(`[name="char_${key}"]`, card).value;
+      return { name: get('name'), role: get('role'), personality: get('personality'), background: get('background'), goals: lines(get('goals')), secret: get('secret'), limitations: lines(get('limitations')) };
+    });
+  } else if (form.id === 'ai-brief-form') {
+    for (const key of ['name', 'genre', 'idea', 'constraints', 'voice']) creator.brief[key] = form.elements[key].value;
+    for (const key of ['words', 'character_count']) creator.brief[key] = Number(form.elements[key].value);
+    creator.raw = $('#setup-response')?.value || creator.raw;
+  } else {
+    creator.presetId = form.elements.preset_id.value; creator.presetName = form.elements.name.value; creator.presetJSON = form.elements.preset_json.value;
+  }
+}
+function renderCreator() {
+  if (creator.mode === 'preset') {
+    openPresetNew(creator.presetId);
+    const form = $('#new-form');
+    if (creator.presetJSON) { form.elements.preset_json.value = creator.presetJSON; form.elements.name.value = creator.presetName; }
+    return;
+  }
+  if (creator.mode === 'ai') {
+    const b = creator.brief, v = creator.preview;
+    showDialog('Dàn dựng từ ý tưởng với ChatGPT', `${creatorTabs()}<p class="creator-intro">Viết ý tưởng → sao chép prompt → dán dàn dựng ChatGPT trả về → duyệt và tạo truyện.</p><form id="ai-brief-form"><div class="creator-pair">${creatorField('name', 'Tên dự án / truyện', b.name, { max: 120 })}${creatorField('genre', 'Thể loại', b.genre, { max: 120, placeholder: 'Ví dụ: tình cảm, kỳ ảo, khoa học viễn tưởng…' })}</div>${creatorField('idea', 'Ý tưởng và xung đột ban đầu', b.idea, { multiline: true })}${creatorField('constraints', 'Yêu cầu riêng (không bắt buộc)', b.constraints, { multiline: true, required: false })}${creatorField('voice', 'Giọng kể', b.voice, { multiline: true })}<div class="creator-pair"><label class="field"><span>Số nhân vật</span><input class="input" type="number" name="character_count" min="2" max="8" value="${b.character_count}" required></label><label class="field"><span>Số từ mỗi cảnh</span><input class="input" type="number" name="words" min="200" max="2000" value="${b.words}" required></label></div>${configInputs(creator.config)}<button class="btn primary" type="submit">Tạo prompt dàn dựng</button></form>${creator.prompt ? `<section class="creator-step"><h3>1. Gửi prompt này vào ChatGPT</h3><textarea class="prompt-text" aria-label="Prompt dàn dựng gửi ChatGPT" readonly>${esc(creator.prompt)}</textarea><button class="btn secondary" data-action="creator-copy">${icon('copy')}Sao chép prompt dàn dựng</button><a class="btn secondary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Mở ChatGPT</a></section><section class="creator-step"><h3>2. Dán câu trả lời</h3><textarea class="prompt-text" id="setup-response" aria-label="Dàn dựng ChatGPT trả về" placeholder="Dán toàn bộ JSON, có thể kèm lời dẫn và Markdown">${esc(creator.raw)}</textarea><button class="btn primary" data-action="creator-preview">Kiểm tra dàn dựng</button><button class="btn secondary" data-action="creator-repair">Prompt sửa dàn dựng</button></section>` : ''}<div id="dialog-error">${renderError(creator.error)}</div>${v ? `<section class="creator-step" id="setup-review"><h3>3. Dàn dựng sẽ được tạo</h3><p><strong>${esc(v.preset.name)}</strong> · ${esc(v.preset.genre)} · ${v.preset.characters.length} nhân vật</p><p>${esc(v.preset.premise)}</p>${v.import_notes.length ? `<ul>${v.import_notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}<div class="creator-cast">${v.preset.characters.map(c => `<article><strong>${esc(c.name)}</strong> · ${esc(c.role)}<p>${esc(c.personality)}</p><p>Mục tiêu: ${esc(c.goals.join('; '))}</p></article>`).join('')}</div><details><summary>Đọc thế giới, hồ sơ riêng và giọng kể trước khi tạo</summary><pre class="large-json">${esc(JSON.stringify(v.preset, null, 2))}</pre></details></section>` : ''}`, `<small>Copy/paste thủ công; tạo truyện sau khi bạn duyệt dàn dựng.</small>${v ? '<button class="btn primary" data-action="creator-create">Mở sân khấu từ dàn dựng này</button>' : ''}`);
+    return;
+  }
+  const m = creator.manual;
+  showDialog('Dàn dựng từ ý tưởng riêng', `${creatorTabs()}<p class="creator-intro">Tạo một thế giới và 2–8 nhân vật theo bất kỳ thể loại nào. Bạn có thể nhờ ChatGPT điền dàn dựng ở tab bên cạnh.</p><form id="custom-form"><div class="creator-pair">${creatorField('name', 'Tên dự án / truyện', m.name, { max: 120 })}${creatorField('genre', 'Thể loại', m.genre, { max: 120, placeholder: 'Ví dụ: tình cảm, kỳ ảo, đời thường…' })}</div>${creatorField('premise', 'Tình huống và xung đột mở màn', m.premise, { multiline: true })}${creatorField('setting', 'Bối cảnh thế giới', m.setting, { multiline: true })}<div class="creator-pair">${creatorField('location', 'Địa điểm mở màn', m.location, { max: 200 })}${creatorField('time', 'Thời điểm mở màn', m.time, { max: 200 })}</div>${creatorField('rules', 'Quy tắc thế giới · mỗi dòng một điều', m.rules.join('\n'), { multiline: true })}<h3 class="creator-section-title">Dàn nhân vật tự chủ</h3>${m.characters.map(creatorCharacter).join('')}<button type="button" class="btn secondary" data-action="creator-add" ${m.characters.length >= 8 ? 'disabled' : ''}>${icon('plus')}Thêm nhân vật</button><h3 class="creator-section-title">Cách kể và mô phỏng</h3>${creatorField('voice', 'Giọng kể', m.voice, { multiline: true })}${creatorField('guidance', 'Chỉ dẫn cho Người kể', m.guidance, { multiline: true })}<label class="field"><span>Số từ mỗi cảnh</span><input class="input" name="words" type="number" min="200" max="2000" value="${m.words}" required></label>${configInputs(creator.config)}<div id="dialog-error"></div></form>`, `<small>Bí mật chỉ được lưu cho nhân vật sở hữu. Cảm xúc ban đầu có thể đổi qua từng lượt.</small><button type="submit" form="custom-form" class="btn primary">${icon('play')}Mở sân khấu</button>`);
+}
+function openPresetNew(presetId = 'rain-case') {
   const preset = state.presets.find(p => p.id === presetId) || state.presets[0];
   const { id, ...editable } = structuredClone(preset);
-  const config = { mode: 'batch', max_scenes: preset.casefile ? 8 : 6, max_turns: 6, batch_size: 3, memory_limit: 12 };
-  showDialog('Dàn dựng một câu chuyện', `<form id="new-form"><label class="field"><span>Chọn tình huống khởi đầu</span><select name="preset_id" id="new-preset">${state.presets.map(p => `<option value="${esc(p.id)}" ${preset.id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label><label class="field"><span>Tên truyện của bạn</span><input class="input" name="name" value="${esc(preset.name)}" maxlength="120" required></label>${configInputs(config)}<details><summary>Chỉnh thế giới, nhân vật và giọng kể bằng JSON</summary><p>Đây là toàn bộ dàn dựng. Bạn có thể thay tình huống, tên và hồ sơ nhân vật, mục tiêu, bí mật, cảm xúc, sự thật với known_by và phong cách kể. Giữ cấu trúc và ID nhất quán.</p><textarea class="preset-json" name="preset_json" aria-label="JSON dàn dựng">${esc(JSON.stringify(editable, null, 2))}</textarea></details><div id="dialog-error"></div></form>`, `<small>Chưa tạo prompt hay gửi dữ liệu tới ChatGPT.</small><button type="submit" form="new-form" class="btn primary">${icon('play')}Mở sân khấu</button>`);
+  const config = creator.config;
+  showDialog('Dàn dựng một câu chuyện', `${creatorTabs()}<form id="new-form"><label class="field"><span>Chọn tình huống khởi đầu</span><select name="preset_id" id="new-preset">${state.presets.map(p => `<option value="${esc(p.id)}" ${preset.id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label><label class="field"><span>Tên truyện của bạn</span><input class="input" name="name" value="${esc(preset.name)}" maxlength="120" required></label>${configInputs(config)}<details><summary>Chỉnh thế giới, nhân vật và giọng kể bằng JSON</summary><p>Đây là toàn bộ dàn dựng. Bạn có thể thay tình huống, tên và hồ sơ nhân vật, mục tiêu, bí mật, cảm xúc, sự thật với known_by và phong cách kể. Giữ cấu trúc và ID nhất quán.</p><textarea class="preset-json" name="preset_json" aria-label="JSON dàn dựng">${esc(JSON.stringify(editable, null, 2))}</textarea></details><div id="dialog-error"></div></form>`, `<small>Chưa tạo prompt hay gửi dữ liệu tới ChatGPT.</small><button type="submit" form="new-form" class="btn primary">${icon('play')}Mở sân khấu</button>`);
 }
 async function openSetup() {
   const p = state.project;
@@ -237,6 +296,36 @@ document.addEventListener('click', async event => {
       case 'menu': $('.sidebar').classList.toggle('open'); break;
       case 'close': $('#dialog').close(); break;
       case 'new': openNew(target.dataset.preset); break;
+      case 'creator-mode': captureCreator(); creator.mode = target.dataset.mode; renderCreator(); break;
+      case 'creator-add': captureCreator(); if (creator.manual.characters.length < 8) creator.manual.characters.push(blankCharacter()); renderCreator(); break;
+      case 'creator-remove': captureCreator(); if (creator.manual.characters.length > 2) creator.manual.characters.splice(Number(target.dataset.index), 1); renderCreator(); break;
+      case 'creator-copy': await copy(creator.prompt); break;
+      case 'creator-preview': {
+        captureCreator();
+        const draft = creator, raw = creator.raw;
+        try {
+          const preview = await api('/setup/preview', { method: 'POST', body: { raw } });
+          if (creator !== draft || creator.raw !== raw) { toast('Bản dán đã đổi. Kiểm tra lại dàn dựng mới.'); break; }
+          creator.preview = preview; creator.reviewedRaw = raw; creator.error = null;
+        }
+        catch (e) { if (creator !== draft || creator.raw !== raw) break; creator.error = e; creator.preview = null; creator.reviewedRaw = null; }
+        renderCreator();
+        $('#dialog-error').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        break;
+      }
+      case 'creator-repair':
+        captureCreator();
+        await copy(`Sửa dàn dựng sau theo mẫu trong prompt gốc. Giữ ý tưởng, nhân vật và bí mật; chỉ sửa định dạng và tham chiếu bị lỗi. Trả một JSON đầy đủ, không dấu ba chấm.\n\nLỖI\n${creator.error?.message || 'Kiểm tra tên trường, kiểu dữ liệu và ID.'}\n${JSON.stringify(creator.error?.details || [])}\n\nPROMPT GỐC\n${creator.prompt}\n\nDÀN DỰNG CẦN SỬA\n${creator.raw}`);
+        break;
+      case 'creator-create': {
+        captureCreator();
+        if (!creator.preview || creator.raw !== creator.reviewedRaw) throw new Error('Kiểm tra lại dàn dựng trước khi tạo truyện.');
+        try {
+          const p = await api('/projects', { method: 'POST', body: { preset: creator.preview.preset, config: creator.config } });
+          $('#dialog').close(); await loadProject(p.id, true); toast('Truyện riêng đã được tạo.');
+        } catch (e) { $('#dialog-error').innerHTML = renderError(e); }
+        break;
+      }
       case 'setup': await openSetup(); break;
       case 'case-setup': showDialog('Chuẩn bị hồ sơ bằng ChatGPT', '<form id="case-form"><p class="plain-text">Một prompt đầu truyện để tạo sự thật quá khứ, dòng thời gian và manh mối. Sau khi nhập, hồ sơ sẽ được giữ cố định trong mô phỏng.</p><label class="field" style="margin-top:20px"><span>Ý tưởng vụ án</span><textarea name="guidance" maxlength="4000" placeholder="Ví dụ: một biên bản bị sửa; nhân chứng có động cơ che giấu; kết cục để mở."></textarea></label><div id="dialog-error"></div></form>', '<small>Chỉ tạo prompt, bạn sẽ xem và duyệt JSON trước khi lưu hồ sơ.</small><button class="btn primary" type="submit" form="case-form">Tạo prompt hồ sơ</button>'); break;
       case 'project': await loadProject(target.dataset.id, true); break;
@@ -247,12 +336,20 @@ document.addEventListener('click', async event => {
       case 'export': openExport(); break;
       case 'download-story': location.href = `/api/projects/${state.project.id}/export?format=markdown`; break;
       case 'copy-prompt': await copy(state.job.prompt); break;
-      case 'preview':
-        try { state.preview = await api(`/projects/${state.project.id}/jobs/${state.job.id}/preview`, { method: 'POST', body: { raw: state.raw } }); state.reviewedRaw = state.raw; state.error = null; }
-        catch (e) { state.error = e; state.preview = null; }
-        $('#response-error').innerHTML = renderError(state.error); $('#response-preview').innerHTML = renderPreview();
-        if (state.preview) $('#response-preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      case 'copy-normalized': await copy(JSON.stringify(state.preview.normalized_response, null, 2)); break;
+      case 'preview': {
+        const jobId = state.job.id, projectId = state.project.id, raw = state.raw;
+        try {
+          const preview = await api(`/projects/${projectId}/jobs/${jobId}/preview`, { method: 'POST', body: { raw } });
+          if (state.job?.id !== jobId || state.raw !== raw) { toast('Bản dán đã đổi. Kiểm tra lại câu trả lời mới.'); break; }
+          state.preview = preview; state.reviewedRaw = raw; state.error = null;
+        }
+        catch (e) { if (state.job?.id !== jobId || state.raw !== raw) break; state.error = e; state.preview = null; state.reviewedRaw = null; }
+        if ($('#response-error')) $('#response-error').innerHTML = renderError(state.error);
+        if ($('#response-preview')) $('#response-preview').innerHTML = renderPreview();
+        if (state.preview) $('#response-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         break;
+      }
       case 'commit': {
         if (!state.preview || state.raw !== state.reviewedRaw) throw new Error('Hãy kiểm tra lại JSON trước khi nhập.');
         const oldJobId = state.job.id;
@@ -272,7 +369,7 @@ document.addEventListener('click', async event => {
       }
       case 'history-detail': {
         const j = state.project.exchanges.find(x => x.id === target.dataset.id);
-        showDialog(`${kinds[j.kind]} · Cảnh ${j.scene_number}`, `<h3>Prompt đã gửi</h3><pre class="large-json">${esc(j.prompt)}</pre>${j.raw_response ? `<h3 style="margin-top:22px">Câu trả lời đã nhập</h3><pre class="large-json">${esc(j.raw_response)}</pre>` : ''}`);
+        showDialog(`${kinds[j.kind]} · Cảnh ${j.scene_number}`, `<h3>Prompt đã gửi</h3><pre class="large-json">${esc(j.prompt)}</pre>${j.raw_response ? `<h3 style="margin-top:22px">Câu trả lời đã nhập</h3><pre class="large-json">${esc(j.raw_response)}</pre><h3>JSON đã lưu sau kiểm tra</h3><pre class="large-json">${esc(JSON.stringify(j.response, null, 2))}</pre>${j.import_notes?.length ? `<ul>${j.import_notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}` : ''}`);
         break;
       }
     }
@@ -286,7 +383,11 @@ document.addEventListener('input', event => {
     localStorage.setItem(`draft:${state.job.id}`, state.raw);
     $('#response-preview').innerHTML = '';
   }
-  const form = event.target.closest('#new-form, #setup-form');
+  if (event.target.id === 'setup-response') {
+    creator.raw = event.target.value; creator.preview = null; creator.reviewedRaw = null;
+    $('[data-action="creator-create"]')?.remove(); $('#setup-review')?.remove();
+  }
+  const form = event.target.closest('#new-form, #setup-form, #custom-form, #ai-brief-form');
   if (form) $('#budget-count').innerHTML = `${budget(readConfig(form))} <span>lần trao đổi / cảnh</span>`;
 });
 document.addEventListener('change', event => {
@@ -297,11 +398,28 @@ document.addEventListener('change', event => {
     form.elements.name.value = preset.name; form.elements.preset_json.value = JSON.stringify(editable, null, 2);
     form.elements.max_scenes.value = preset.casefile ? 8 : 6;
   }
-  const form = event.target.closest('#new-form, #setup-form');
+  const form = event.target.closest('#new-form, #setup-form, #custom-form, #ai-brief-form');
   if (form) $('#budget-count').innerHTML = `${budget(readConfig(form))} <span>lần trao đổi / cảnh</span>`;
 });
 document.addEventListener('submit', async event => {
   const form = event.target;
+  if (['custom-form', 'ai-brief-form'].includes(form.id)) {
+    event.preventDefault();
+    const submit = event.submitter;
+    try {
+      submit.disabled = true; captureCreator();
+      if (form.id === 'ai-brief-form') {
+        const result = await api('/setup/prompt', { method: 'POST', body: creator.brief });
+        creator.prompt = result.prompt; creator.preview = null; creator.reviewedRaw = null; creator.error = null;
+        renderCreator(); $('#setup-response').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        const p = await api('/projects', { method: 'POST', body: { custom: creator.manual, config: creator.config } });
+        $('#dialog').close(); await loadProject(p.id, true); toast('Truyện riêng đã được tạo.');
+      }
+    } catch (e) { $('#dialog-error').innerHTML = renderError(e); }
+    finally { submit.disabled = false; }
+    return;
+  }
   if (form.id === 'case-form') {
     event.preventDefault();
     try {

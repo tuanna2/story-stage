@@ -9,3 +9,28 @@
 .sidebar{overflow-y:auto}.sidebar-bottom{padding-bottom:14px}.case-progress{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#f2edf9;border:1px solid #e4daf2;border-radius:10px;padding:17px 21px;margin-bottom:24px}.case-progress strong{font-size:.9rem;font-weight:550}.case-progress p{font-size:.8rem;color:#847093;margin-top:5px;line-height:1.7}.case-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}.truth-panel{margin-bottom:24px}.truth-panel>summary{display:flex;gap:10px;align-items:center;padding:20px 22px;cursor:pointer;color:#756082;font-size:.9rem}.case-entry{padding:18px 0;border-bottom:1px solid var(--line);line-height:1.7;overflow-wrap:anywhere}.case-entry:first-of-type{padding-top:12px}.case-entry:last-child{border:0}.case-entry h3{margin:9px 0}.case-entry small{display:block;margin-top:7px}.clue-card .panel-head h2{font-size:1rem}.clue-observation{font-size:.95rem;line-height:1.8;margin-bottom:13px}.clue-card details,.mystery-preview details{margin-top:18px;font-size:.85rem;line-height:1.8}.clue-card summary,.mystery-preview summary{color:var(--purple);cursor:pointer}.clue-card details p{margin-top:10px}.hypotheses{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}.hypotheses p{font-size:.85rem;line-height:1.8;margin-top:13px;color:#776385}blockquote{margin:14px 0;padding:10px 15px;border-left:2px solid #bda8dd;background:#f9f7fc;font-size:.85rem;line-height:1.8;overflow-wrap:anywhere}blockquote small{display:block;margin-top:6px}.reader-facts{margin-top:24px}.mystery-preview{margin:20px 0;padding:20px;background:#f9f7fd;border:1px solid #e9e1f3;border-radius:8px}.mystery-preview p{font-size:.85rem;line-height:1.8;margin-top:10px}.mystery-preview h3{margin-top:14px}.mystery-preview h3:first-child{margin:0}.editorial-note{margin-top:35px;padding-top:20px;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);line-height:1.8}
 @media(max-width:900px){.case-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.case-progress{align-items:flex-start;flex-direction:column;padding:16px}.truth-panel>summary{padding:18px}.clue-card .panel-head{flex-wrap:wrap}}
+.sidebar{overflow-y:auto;scrollbar-width:thin}
+.project-list{max-height:240px;overflow-y:auto;scrollbar-width:thin}
+.creator-tabs{display:flex;gap:6px;padding:5px;background:#f4f1f8;border-radius:9px;margin-bottom:20px}
+.creator-tabs button{flex:1;padding:11px 8px;border-radius:6px;background:transparent;color:var(--muted);font-size:.85rem}
+.creator-tabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 5px #39205712}
+.creator-intro{font-size:.88rem;color:var(--muted);line-height:1.7;margin-bottom:24px}
+.creator-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.creator-character{border:1px solid var(--line);border-radius:9px;padding:18px;margin:18px 0;min-width:0}
+.creator-character legend{padding:0 8px;font-weight:600;font-size:.9rem}
+.creator-character textarea{min-height:80px}
+.creator-section-title{margin:26px 0 14px;font-size:1rem}
+.creator-step{border-top:1px solid var(--line);margin-top:26px;padding-top:22px}
+.creator-step h3{margin-bottom:14px;font-size:1rem}
+.creator-step .prompt-text{min-height:220px;margin-bottom:14px}
+.creator-step p,.creator-step li{font-size:.86rem;line-height:1.7;margin:8px 0}
+.creator-step .btn{margin:0 6px 8px 0}
+.creator-cast article{background:#f7f5fa;padding:14px 16px;border-radius:8px;margin:12px 0;font-size:.9rem}
+.normalized-output{margin-bottom:22px;font-size:.86rem}
+.normalized-output summary{cursor:pointer;color:#725b98}
+.normalized-output .large-json{margin:14px 0;max-height:350px}
+.normalization-note{background:#f4f1f9;border:1px solid #e4dcec;border-radius:8px;padding:16px 20px;margin-bottom:18px;font-size:.85rem;line-height:1.7}
+.normalization-note h3{font-size:.92rem;margin-bottom:8px}
+.normalization-note ul{padding-left:20px}
+.welcome-intro .btn{margin-top:20px}
+@media(max-width:600px){.creator-pair{grid-template-columns:1fr;gap:0}.creator-tabs button{font-size:.8rem;padding:10px 3px}.creator-character{padding:14px}.project-list{max-height:220px}}

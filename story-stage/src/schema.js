@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { DomainError } from './errors.js';
+import { readLLMJSON } from './llm-json.js';
+export { DomainError } from './errors.js';
 
 const text = z.string().trim().min(1).max(12000);
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/);
@@ -53,16 +56,21 @@ export const resolutionResponseSchema = z.object({ ...envelope, kind: z.literal(
 export const narrationResponseSchema = z.object({ ...envelope, kind: z.literal('narration'), pov_id: id, prose: text.max(80000), summary: text.max(4000), used_turn_ids: z.array(id).min(1).max(20), reader_updates: readerUpdatesSchema.optional(), editorial_check: editorialCheck.optional() }).strict();
 export const caseSetupResponseSchema = z.object({ ...envelope, kind: z.literal('case_setup'), casefile: casefileSchema, new_facts: z.array(factSchema).max(80), initial_beliefs: z.array(z.object({ character_id: id, ...beliefSchema.shape }).strict()).max(24) }).strict();
 
-export class DomainError extends Error {
-  constructor(message, status = 422, details = []) { super(message); this.statusCode = status; this.details = details; }
-}
 export function parseSchema(schema, value) {
   const result = schema.safeParse(value);
-  if (!result.success) throw new DomainError('Dữ liệu chưa đúng cấu trúc. Hãy sửa các trường được đánh dấu.', 422, result.error.issues.map(x => ({ path: x.path.join('.'), message: x.message })));
+  if (!result.success) throw new DomainError('Dữ liệu chưa đúng cấu trúc. Hãy sửa các trường được đánh dấu.', 422, result.error.issues.map(x => ({ path: x.path.join('.') || 'output', message: issueText(x) })));
   return result.data;
 }
 export function parseResponse(raw) {
-  if (typeof raw !== 'string' || raw.length > 1000000) throw new DomainError('Câu trả lời phải là văn bản JSON, tối đa 1 MB.');
-  const clean = raw.trim().replace(/^\uFEFF/, '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  try { return JSON.parse(clean); } catch { throw new DomainError('Không đọc được JSON. Sao chép toàn bộ đối tượng từ { đến }, hoặc cả khối ```json. Không cần dán phần giải thích.'); }
+  return readLLMJSON(raw).value;
+}
+function issueText(issue) {
+  const types = { string: 'văn bản', number: 'số', boolean: 'true hoặc false', array: 'danh sách trong []', object: 'đối tượng trong {}' };
+  if (issue.code === 'invalid_type') return `Thiếu trường hoặc sai kiểu: cần ${types[issue.expected] || issue.expected}.`;
+  if (issue.code === 'unrecognized_keys') return `Trường chưa thuộc mẫu: ${issue.keys.join(', ')}. Giữ đúng tên khóa trong prompt.`;
+  if (issue.code === 'invalid_value') return `Giá trị cho phép: ${issue.values.map(v => JSON.stringify(v)).join(', ')}.`;
+  if (issue.code === 'too_big') return `Vượt giới hạn ${issue.maximum}${issue.origin === 'string' ? ' ký tự' : issue.origin === 'array' ? ' phần tử' : ''}.`;
+  if (issue.code === 'too_small') return `Cần ít nhất ${issue.minimum}${issue.origin === 'string' ? ' ký tự' : issue.origin === 'array' ? ' phần tử' : ''}.`;
+  if (issue.code === 'invalid_format') return 'Định dạng chưa hợp lệ. ID chỉ dùng chữ, số, dấu gạch ngang và gạch dưới; màu dùng #RRGGBB.';
+  return issue.message;
 }

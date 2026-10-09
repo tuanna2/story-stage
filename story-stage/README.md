@@ -40,15 +40,19 @@ Chế độ thử lưu vào `.data/projects.json`. Đây là lựa chọn rõ r�
 
 ## Viết truyện
 
-1. Chọn preset hoặc **Dàn dựng truyện mới**. Chỉnh tên, số cảnh/lượt và chế độ. Mở phần JSON để thay bối cảnh, dàn vai, mục tiêu, bí mật, luật thế giới và giọng kể.
+1. Chọn **Dàn dựng truyện mới**. Tab **Tự dàn dựng** có form nhập ý tưởng, thể loại bất kỳ, bối cảnh, quy tắc, giọng kể và 2–8 nhân vật với mục tiêu/bí mật riêng. Tab **Nhờ ChatGPT** tạo một prompt dàn dựng từ ý tưởng: copy sang ChatGPT, paste output, kiểm tra và duyệt trước khi mở sân khấu. Tab **Dùng preset** vẫn có các tình huống mẫu và phần sửa JSON nâng cao. Mỗi lần tạo lưu thành dự án riêng; thư viện hiển thị toàn bộ dự án.
 2. Trên **Sân khấu**, chọn **Tạo prompt tiếp theo**. Có thể vào **Trao đổi ChatGPT** trước để viết một chỉ dẫn ngắn cho lượt này.
 3. **Sao chép prompt**, mở ChatGPT và gửi prompt. Web không gửi dữ liệu hay câu hỏi thay bạn.
-4. Dán toàn bộ JSON vào **Câu trả lời nhận về**. Có thể dán cả khối ` ```json `. Chọn **Kiểm tra & xem trước**.
-5. Đọc diễn biến, sự thật mới và cảm xúc sẽ được cập nhật; chọn **Nhập kết quả & tiếp tục**. Nếu lỗi, dùng **Prompt sửa JSON** để nhờ ChatGPT sửa cấu trúc.
+4. Dán toàn bộ output vào **Câu trả lời nhận về**. Có thể kèm lời dẫn hoặc khối ` ```json `. Chọn **Kiểm tra & xem trước**. Web nhận một khối JSON hoàn chỉnh và chuẩn hóa các khác biệt định dạng phổ biến.
+5. Đọc diễn biến, sự thật mới, cảm xúc và ghi chú chuẩn hóa. Mở **Xem JSON sẽ được lưu** để xem dữ liệu thực tế; chọn **Nhập kết quả & tiếp tục**. Nếu còn lỗi, dùng **Prompt sửa câu trả lời**: prompt này chứa mẫu gốc, bản dán và các trường cần sửa bằng tiếng Việt.
 6. Cảnh kết thúc sớm theo kết quả của Thế giới hoặc đạt giới hạn lượt. Khi đó, tạo prompt **Người kể**, trao đổi cùng cách, rồi đọc cảnh trong **Bản thảo**.
 7. Tiếp tục cảnh kế. Khi đạt giới hạn cảnh hoặc không còn nhân vật có thể hành động, mô phỏng hoàn tất. **Xuất truyện** tải bản thảo Markdown, toàn bộ log JSON hoặc preset từ trạng thái hiện tại.
 
 Prompt đang chờ lưu trong MySQL. Bản JSON chưa nhập lưu ở trình duyệt hiện tại. Tải lại trang sẽ về Sân khấu; **Mở prompt đang chờ** để tìm lại bản dán. JSON sai không thay đổi trạng thái. Một prompt chỉ nhận một câu trả lời thành công.
+
+Các trường hợp nhận được: JSON bọc trong `response`/`result`/`output`/`data`, mảng chứa một output, nháy đơn/nháy cong, dấu phẩy cuối và một số lỗi xuống dòng. Metadata thiếu lấy từ prompt đang chờ; tên nhân vật chỉ đổi sang ID khi khớp duy nhất. Số ở dạng chuỗi chuyển sang số rồi vẫn kiểm tra giới hạn. Danh sách không có cập nhật được để trống. Ghi chú chuẩn hóa và bản dán gốc được lưu trong log.
+
+Web không tự dựng hành động, kết quả, người chứng kiến, bằng chứng hay phần câu trả lời bị cắt dở. ID/revision/kind đã ghi rõ nhưng sai vẫn bị chặn. Nếu có nhiều output hoặc dùng dấu ba chấm để lược bỏ dữ liệu, chỉ dán một output đầy đủ. Ở bước Người kể của truyện không có hồ sơ, có thể dán văn xuôi thuần: POV và lượt nguồn lấy từ cảnh đã mô phỏng; tóm tắt biên tập là trích đoạn đầu. Truyện có hồ sơ vẫn cần `reader_updates` và `editorial_check` thật để kiểm tra tiết lộ. Chi tiết triển khai: [docs/IMPORT-AND-CREATION.md](docs/IMPORT-AND-CREATION.md).
 
 ## Chọn cách trao đổi
 
