@@ -1,0 +1,25 @@
+{
+  "name": "story-stage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "demo": "STORAGE=file PORT=4317 node src/server.js",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
+    "test": "node --test test/*.test.js",
+    "test:mysql": "node --env-file=.env.test --test test/*.test.js",
+    "check": "node --check src/server.js && node --check src/engine.js && node --check public/app.js",
+    "example:case": "node scripts/example-case.js"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.5",
+    "fastify": "^5.6.0",
+    "mysql2": "^3.15.0",
+    "zod": "^4.1.0"
+  }
+}
