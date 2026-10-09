@@ -4,6 +4,8 @@
 
 `readLLMJSON` nhận văn bản tối đa 1 MB, tách một container JSON hoàn chỉnh khỏi Markdown/lời dẫn, đọc lớp bọc phổ biến, rồi sửa cú pháp bằng [jsonrepair](https://github.com/josdejong/jsonrepair). Không dùng `eval`. Không ghép nhiều output, không thêm phần kết bị cắt dở và không xóa dấu ba chấm dùng thay dữ liệu.
 
+Nếu JSON chưa đọc được vì lời thoại dùng hai dấu gạch chéo trước dấu nháy, bộ nhập sửa về một dấu trong chuỗi khi dấu nháy đó không thể là dấu kết thúc chuỗi JSON. Ghi chú chuẩn hóa cho biết số dấu đã sửa. JSON hợp lệ được đọc trước và giữ nguyên, gồm các đường dẫn/backslash hợp lệ. Bản dán gốc vẫn lưu nguyên trong log; đọc lại văn xuôi chuẩn hóa trước khi nhập.
+
 `importResponse` chuẩn hóa những khác biệt có thể xác định từ dữ liệu đã có:
 
 - Bổ sung metadata **chưa có** từ job đang chờ; không ghi đè metadata sai được trả rõ ràng.
@@ -31,4 +33,4 @@ Nếu truyện mới cần hồ sơ bí ẩn, dùng **Hồ sơ vụ án → Tạ
 
 ## Kiểm chứng
 
-Các regression test kiểm tra định dạng dán phổ biến, rollback khi metadata/knowledge sai, tên trùng, không sửa output cắt dở, narration, bắt buộc chứng cứ vụ án, tạo nhiều thể loại, preview dàn dựng không ghi store, commit và mở lại store. Chạy cùng suite trên FileStore, MySQL 8.4 và MariaDB của người dùng. Browser QA dùng fixture do người phát triển viết, không có phản hồi ChatGPT thực tế của người dùng trong session này.
+Các regression test kiểm tra định dạng dán phổ biến, dấu nháy lời thoại escape hai lần, giữ backslash hợp lệ, rollback khi metadata/knowledge sai, tên trùng, không sửa output cắt dở, narration, bắt buộc chứng cứ vụ án, tạo nhiều thể loại, preview dàn dựng không ghi store, commit và mở lại store. Chạy cùng suite trên FileStore, MySQL 8.4 và MariaDB của người dùng. Browser QA ban đầu dùng fixture viết sẵn; bản narration thực tế người dùng gửi sau đó đã được kiểm tra bằng chính parser và preview với prompt đang chờ, không commit vào truyện.

@@ -36,6 +36,34 @@ function decode(text) {
   try { return { value: JSON.parse(text), repaired: false }; }
   catch { try { return { value: JSON.parse(jsonrepair(text)), repaired: true }; } catch { return null; } }
 }
+// Some chat outputs escape dialogue quotes twice. Only repair an exact double
+// backslash inside a string when the quote cannot be a JSON string terminator.
+// Valid JSON is parsed first and never goes through this fallback.
+function repairDialogueQuotes(text) {
+  let result = '', quoted = false, count = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted && c === '\\') {
+      let end = i;
+      while (text[end] === '\\') end++;
+      const slashes = end - i;
+      if (text[end] === '"') {
+        const tail = text.slice(end + 1);
+        const terminator = /^\s*(?:$|[:}\]]|,\s*(?:["'{}\[\]\d-]|true\b|false\b|null\b))/u.test(tail);
+        if (slashes === 2 && !terminator) {
+          result += '\\"'; count++; i = end; continue;
+        }
+        result += text.slice(i, end + 1); i = end;
+        if (slashes % 2 === 0) quoted = false;
+        continue;
+      }
+      result += text.slice(i, end); i = end - 1; continue;
+    }
+    if (c === '"') quoted = !quoted;
+    result += c;
+  }
+  return { text: result, count };
+}
 export function readLLMJSON(raw) {
   if (typeof raw !== 'string' || Buffer.byteLength(raw, 'utf8') > 1000000) throw new DomainError('Câu trả lời cần là văn bản, tối đa 1 MB.');
   const clean = raw.replace(/^\uFEFF/, '').trim(); const notes = [];
@@ -47,7 +75,8 @@ export function readLLMJSON(raw) {
   }
   let chosen = direct;
   if (!chosen) {
-    const scan = containers(clean);
+    const dialogue = repairDialogueQuotes(clean);
+    const scan = containers(dialogue.text);
     if (scan.omitted) throw new DomainError('JSON có dấu ba chấm thay cho nội dung bị lược bỏ. Yêu cầu ChatGPT trả toàn bộ dữ liệu, không dùng ... hoặc … ngoài chuỗi văn bản.');
     if (scan.incomplete) throw new DomainError('JSON đang bị cắt dở hoặc thiếu dấu đóng. Sao chép toàn bộ output; nếu ChatGPT dừng giữa chừng, yêu cầu trả lại JSON đầy đủ.', 422, [{ path: 'output', message: 'Chưa có đối tượng JSON hoàn chỉnh; không tự thêm phần nội dung bị thiếu.' }]);
     const candidates = scan.found.map(text => ({ text, ...decode(text) })).filter(c => c.value !== undefined);
@@ -56,7 +85,8 @@ export function readLLMJSON(raw) {
     if (possible.length > 1) throw new DomainError('Có nhiều khối JSON trong bản dán. Chỉ giữ câu trả lời cho prompt đang chờ, bỏ ví dụ và câu trả lời cũ.');
     chosen = possible[0];
     if (!chosen) throw new DomainError('Chưa nhận diện được JSON. Bước này cần dữ liệu theo mẫu trong prompt, không chỉ văn xuôi. Dùng “Prompt sửa câu trả lời” để chuyển output về đúng mẫu.', 422, [{ path: 'output', message: 'Cần một đối tượng { ... }. Có thể dán cả lời dẫn và khối ```json.' }]);
-    if (chosen.text !== clean) notes.push('Đã lấy khối JSON khỏi lời dẫn hoặc Markdown.');
+    if (dialogue.count) notes.push(`Đã sửa ${dialogue.count} dấu nháy lời thoại bị escape hai lần. Đọc lại văn xuôi trong bản chuẩn hóa trước khi nhập.`);
+    if (chosen.text !== dialogue.text) notes.push('Đã lấy khối JSON khỏi lời dẫn hoặc Markdown.');
   }
   if (chosen.repaired) notes.push('Đã sửa cú pháp JSON (dấu nháy, dấu phẩy hoặc xuống dòng). Đọc lại bản chuẩn hóa trước khi nhập.');
   let value = chosen.value;

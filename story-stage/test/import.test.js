@@ -24,6 +24,19 @@ test('Mở lớp response, mảng một output và JSON được bọc thành ch
   }
 });
 
+test('Sửa dấu nháy lời thoại escape hai lần, giữ đường dẫn và chặn output thiếu hoặc nhiều khối', () => {
+  const value = { kind: 'narration', prose: 'Tôi nói: "Ghi yêu cầu giúp tôi."\n\n"Có, tôi sẽ ghi.", cô đáp.', summary: 'Yêu cầu được ghi.', path: 'C:\\notes\\' };
+  const valid = JSON.stringify(value), broken = valid.replace(JSON.stringify(value.prose), JSON.stringify(value.prose).replaceAll('\\"', '\\\\"'));
+  for (const raw of [broken, `Kết quả:\n\`\`\`json\n${broken}\n\`\`\``]) {
+    const repaired = readLLMJSON(raw);
+    assert.deepEqual(repaired.value, value);
+    assert.ok(repaired.notes.some(n => n.includes('escape hai lần')));
+  }
+  assert.deepEqual(readLLMJSON(valid), { value, notes: [] });
+  assert.throws(() => readLLMJSON(broken.slice(0, -1)), /cắt dở/);
+  assert.throws(() => readLLMJSON(`${broken}\n{"kind":"narration","prose":"Khác"}`), /nhiều khối/);
+});
+
 test('Không ghép nhiều output, không thêm phần bị cắt dở hoặc xóa dấu lược bỏ', () => {
   for (const raw of ['{"kind":"simulation"}\n{"kind":"narration"}', '{"kind":"simulation","turns":[', '{"kind":"simulation","turns":[...]}', '{"kind":"simulation",…}']) {
     assert.throws(() => readLLMJSON(raw));

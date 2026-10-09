@@ -107,7 +107,7 @@ npm run test:mysql
 npm audit
 ```
 
-Test MySQL dùng đúng database cấu hình hiện tại, tạo fixture với ID riêng và chỉ xóa các fixture do test đó tạo. Test kiểm tra cách ly prompt, ranh giới sự thật/niềm tin, transaction, nhập đồng thời, restart, các chế độ mô phỏng, memory và export. Phase 3 bổ sung kiểm tra phiên bản, hai luồng prompt xen kẽ, lịch sử mạch theo người biết, nguồn tiết lộ và nhánh trước cảnh. Có 77 kiểm tra với file và 78 với MySQL/MariaDB. Giao diện đã được kiểm tra desktop/điện thoại qua sửa, khôi phục, viết lại, đổi trích đoạn, chia chương, đổi thiết lập và tạo nhánh. Dữ liệu kiểm thử được viết sẵn; không gửi câu hỏi tới ChatGPT hoặc đo chất lượng truyện thực tế trong lúc kiểm thử.
+Test MySQL dùng đúng database cấu hình hiện tại, tạo fixture với ID riêng và chỉ xóa các fixture do test đó tạo. Test kiểm tra cách ly prompt, ranh giới sự thật/niềm tin, transaction, nhập đồng thời, restart, các chế độ mô phỏng, memory và export. Phase 3 bổ sung kiểm tra phiên bản, hai luồng prompt xen kẽ, lịch sử mạch theo người biết, nguồn tiết lộ và nhánh trước cảnh. Có 78 kiểm tra với file và 79 với MySQL/MariaDB. Giao diện đã được kiểm tra desktop/điện thoại qua sửa, khôi phục, viết lại, đổi trích đoạn, chia chương, đổi thiết lập và tạo nhánh. Dữ liệu kiểm thử được viết sẵn; không gửi câu hỏi tới ChatGPT hoặc đo chất lượng truyện thực tế trong lúc kiểm thử.
 
 `npm run test:mysql` dùng cấu hình riêng trong `.env.test`, cần có file này để chạy. Trên máy hiện tại, file đã được cấu hình để kiểm tra bằng tài khoản root do bạn cung cấp trên container MariaDB tại `127.0.0.1:3306`, với database riêng `story_stage_test`. File chứa mật khẩu được bỏ qua bởi Git. Cấu hình ứng dụng `.env` dùng MySQL ở cổng 3307 được giữ nguyên.
 

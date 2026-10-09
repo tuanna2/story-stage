@@ -103,6 +103,6 @@ Viết lại dùng các endpoint job `preview`, `commit`, `cancel` hiện có. P
 
 ## Kiểm chứng
 
-Unit/API kiểm tra phiên bản bất biến, lưu đồng thời, job xen kẽ, rollback, mạch riêng/người vắng mặt, nguồn trích đoạn, ngữ cảnh lịch sử, chương, nhánh, export và mở lại store. Bộ file có 77 kiểm tra; MySQL 8.4 và MariaDB Docker có 78 kiểm tra.
+Unit/API kiểm tra phiên bản bất biến, lưu đồng thời, job xen kẽ, rollback, mạch riêng/người vắng mặt, nguồn trích đoạn, ngữ cảnh lịch sử, chương, nhánh, export và mở lại store. Bộ file có 78 kiểm tra; MySQL 8.4 và MariaDB Docker có 79 kiểm tra.
 
 Kiểm tra giao diện desktop và 390 × 844 dùng các dự án fixture riêng: sửa → so sánh → khôi phục → viết lại → tải lại → chia chương → đổi thiết lập → lọc mạch → tạo nhánh; thử lỗi trích đoạn vụ án rồi sửa và nhập JSON kèm Markdown. Các fixture đã xóa sau kiểm tra, payload hai dự án ban đầu được đối chiếu hash và giữ nguyên, bản dán đang chờ được giữ. Kiểm tra này dùng nội dung viết sẵn, chưa chứng minh ChatGPT sẽ luôn đạt độ dài hay chất lượng ngang hai truyện tham khảo.
