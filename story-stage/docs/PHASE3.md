@@ -9,7 +9,7 @@ Phase này giúp viết cảnh dài từ tương tác cụ thể, theo dõi nh�
 3. Lưu thiết lập. Prompt đang chờ vẫn dùng yêu cầu cũ; prompt được tạo tiếp sẽ nhận thiết lập mới.
 4. Mô phỏng cảnh, đọc duyệt diễn biến rồi tạo prompt Người kể. Với 6 lượt/cảnh và gộp 6 lượt, thường cần hai lần trao đổi: mô phỏng và văn xuôi. Việc rà tính liên tục nằm trong câu trả lời Người kể.
 
-Số từ là mục tiêu cho prompt, không phải điều kiện chặn nhập. Nếu nguồn ngắn hoặc thiếu hành động, Người kể cần ghi lưu ý và giữ nội dung có căn cứ. Web nhắc khi một lượt có dưới 80 từ chất liệu hoặc bản thảo dưới 65% mục tiêu. Bộ đếm dựa trên khoảng trắng, nên với tiếng Việt là chỉ số độ dài để so sánh, không phải phân tích từ vựng. Output bị cắt dở cần tạo lại đầy đủ; có thể giảm gộp xuống 3 lượt.
+Số từ là mục tiêu cho prompt, không phải điều kiện chặn nhập. Nếu nguồn ngắn hoặc thiếu hành động, Người kể cần ghi lưu ý và giữ nội dung có căn cứ. Web nhắc khi một lượt có dưới 81 từ chất liệu hoặc bản thảo dưới 65% mục tiêu. Bộ đếm dựa trên khoảng trắng, nên với tiếng Việt là chỉ số độ dài để so sánh, không phải phân tích từ vựng. Output bị cắt dở cần tạo lại đầy đủ; có thể giảm gộp xuống 3 lượt.
 
 ## Chất liệu từng lượt
 
@@ -43,7 +43,7 @@ Thế giới gửi `thread_updates` trong cùng kết quả mô phỏng/phân x�
 }
 ```
 
-Người hành động phải tham gia mạch; những người tham gia phải có mặt trong `witnesses`. Trích đoạn phải nằm trong hành động hoặc kết quả. Evidence phải là sự thật actor đã biết. Mạch mới bắt đầu ở `open`; cập nhật mạch cũ giữ ID, loại, tiêu đề và người tham gia. Giới hạn 200 mạch/dự án, tối đa 6 cập nhật/lượt. Thay đổi được xem trước và chỉ lưu khi nhập cả packet thành công.
+Người hành động phải tham gia mạch; những người tham gia phải có mặt trong `witnesses`. Trích đoạn phải nằm trong hành động hoặc kết quả. Evidence phải là sự thật actor đã biết. Mạch mới bắt đầu ở `open`; cập nhật mạch cũ giữ ID, loại và người tham gia. Nếu cùng ID/loại/người tham gia nhưng output diễn đạt lại tiêu đề, web dùng tiêu đề đã lưu và ghi chú chuẩn hóa. Đổi loại hoặc danh sách nhân vật trả lỗi với trường, giá trị hiện tại và giá trị đã lưu; dùng ID mới nếu là mạch khác. Giới hạn 200 mạch/dự án, tối đa 6 cập nhật/lượt. Thay đổi được xem trước và chỉ lưu khi nhập cả packet thành công.
 
 Mạch bổ sung theo dõi tương tác. Đáp án vụ án vẫn được kiểm tra bởi hồ sơ, manh mối và sổ độc giả ở phase 2; đánh dấu một nghi vấn đã giải quyết không tự mở đáp án.
 
@@ -105,6 +105,6 @@ Viết lại dùng các endpoint job `preview`, `commit`, `cancel` hiện có. P
 
 ## Kiểm chứng
 
-Unit/API kiểm tra phiên bản bất biến, lưu đồng thời, job xen kẽ, rollback, mạch riêng/người vắng mặt, nguồn trích đoạn, ngữ cảnh lịch sử, chương, nhánh, export và mở lại store. Bộ file có 79 kiểm tra; MySQL 8.4 và MariaDB Docker có 80 kiểm tra.
+Unit/API kiểm tra phiên bản bất biến, lưu đồng thời, job xen kẽ, rollback, mạch riêng/người vắng mặt, nguồn trích đoạn, ngữ cảnh lịch sử, chương, nhánh, export và mở lại store. Bộ file có 80 kiểm tra; MySQL 8.4 và MariaDB Docker có 81 kiểm tra.
 
 Kiểm tra giao diện desktop và 390 × 844 dùng các dự án fixture riêng: sửa → so sánh → khôi phục → viết lại → tải lại → chia chương → đổi thiết lập → lọc mạch → tạo nhánh; thử lỗi trích đoạn vụ án rồi sửa và nhập JSON kèm Markdown. Các fixture đã xóa sau kiểm tra, payload hai dự án ban đầu được đối chiếu hash và giữ nguyên, bản dán đang chờ được giữ. Kiểm tra này dùng nội dung viết sẵn, chưa chứng minh ChatGPT sẽ luôn đạt độ dài hay chất lượng ngang hai truyện tham khảo.

@@ -88,5 +88,21 @@ export function importResponse(raw, project, job) {
     // Reader evidence and editorial checks are never synthesized.
   }
   if (job.kind === 'case_setup') collections(value, ['initial_beliefs']);
+  if (['simulation', 'resolution'].includes(job.kind)) {
+    const threads = new Map((project.threads || []).map(t => [t.id, t]));
+    const turns = job.kind === 'simulation' && Array.isArray(value.turns) ? value.turns : [value];
+    for (const turn of turns) for (const update of (Array.isArray(turn?.thread_updates) ? turn.thread_updates : [])) {
+      if (!object(update)) continue;
+      const previous = threads.get(update.thread_id);
+      const samePeople = previous && Array.isArray(update.character_ids) && [...previous.character_ids].sort().join('|') === [...update.character_ids].sort().join('|');
+      // The ID identifies the thread. Preserve its display title without changing
+      // its kind, participants, status, evidence, excerpt or anyone's knowledge.
+      if (samePeople && previous.kind === update.kind && typeof update.title === 'string' && update.title !== previous.title) {
+        update.title = previous.title;
+        add(`Mạch ${update.thread_id}: đã dùng tiêu đề đã lưu “${previous.title}” theo ID. Nếu là một mạch khác, dùng thread_id mới.`);
+      }
+      if (!previous && typeof update.title === 'string' && Array.isArray(update.character_ids)) threads.set(update.thread_id, { kind: update.kind, title: update.title, character_ids: update.character_ids });
+    }
+  }
   return { value, notes };
 }

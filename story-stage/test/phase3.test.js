@@ -75,6 +75,22 @@ test('Người vắng mặt giữ trạng thái mạch đã chứng kiến trư�
   assert.equal(characterView(p, 'lam').story_threads.find(t => t.id === update.thread_id).status, 'open');
 });
 
+test('Cùng ID/loại/nhân vật dùng tiêu đề đã lưu; đổi định danh hoặc căn cứ sai vẫn bị chặn', () => {
+  const p = createProject({ config: { batch_size: 1 } }), j = nextJob(p), goal = p.threads[0], before = structuredClone(p);
+  const r = batch(p, j); r.turns[0].thread_updates = [{ thread_id: goal.id, kind: goal.kind, title: 'Diễn đạt lại tên mục tiêu', character_ids: goal.character_ids, status: 'open', evidence_fact_ids: [], excerpt: r.turns[0].outcome }];
+  const raw = JSON.stringify(r), preview = previewResponse(p, j.id, raw);
+  assert.equal(preview.normalized_response.turns[0].thread_updates[0].title, goal.title);
+  assert.ok(preview.import_notes.some(n => n.includes(goal.id) && n.includes('tiêu đề đã lưu')));
+  assert.deepEqual(p, before);
+  for (const [patch, field] of [[{ kind: 'question' }, 'kind'], [{ character_ids: ['phong', 'quan'] }, 'character_ids']]) {
+    const changed = structuredClone(r); changed.turns[0].witnesses = ['phong', 'quan']; Object.assign(changed.turns[0].thread_updates[0], patch);
+    assert.throws(() => previewResponse(p, j.id, JSON.stringify(changed)), e => e.details.some(d => d.path === `turns.0.thread_updates.0.${field}`));
+  }
+  const unknown = structuredClone(r); unknown.turns[0].thread_updates[0].evidence_fact_ids = ['secret_quan'];
+  assert.throws(() => previewResponse(p, j.id, JSON.stringify(unknown)), e => e.details.some(d => d.message.includes('chưa biết secret_quan')));
+  acceptResponse(p, j.id, raw); assert.equal(p.threads[0].title, goal.title); assert.equal(p.exchanges[0].raw_response, raw);
+});
+
 test('Lỗi căn cứ mạch chỉ rõ actor, fact và đường dẫn; phân biệt ID thiếu, lặp và chưa biết', () => {
   const p = createProject({ config: { batch_size: 1 } }), j = nextJob(p), before = structuredClone(p);
   const update = { thread_id: 'thread_evidence', kind: 'question', title: 'Hồ sơ được giữ ở đâu', character_ids: ['phong'], status: 'open', excerpt: 'Câu hỏi được ghi lại nhưng chưa có câu trả lời.' };

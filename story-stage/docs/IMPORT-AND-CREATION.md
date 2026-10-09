@@ -13,6 +13,7 @@ Nếu JSON chưa đọc được vì lời thoại dùng hai dấu gạch chéo 
 - Chuyển chuỗi số hợp lệ sang số; không ép thang giá trị hoặc sửa số ngoài giới hạn.
 - Đổi một số tên khóa rõ nghĩa (`private_thought`, `public_action`, `emotions`, `scene_update`, `narrative`, `story_text`); hai khóa mâu thuẫn bị chặn.
 - Danh sách cập nhật vắng mặt dùng `[]`, world_event vắng mặt dùng `null`; địa điểm/thời gian/áp lực vắng mặt giữ trạng thái hiện tại.
+- Mạch có cùng `thread_id`, loại và danh sách nhân vật dùng tiêu đề đã lưu, kể cả khi output diễn đạt lại tiêu đề. Có ghi chú chuẩn hóa; loại, nhân vật, trạng thái, căn cứ và quyền biết vẫn được kiểm tra. Mạch mới trong cùng packet giữ tiêu đề lần khai báo đầu. Dùng ID mới nếu muốn tạo một mạch khác.
 - Narration thiếu POV/lượt nguồn lấy từ cảnh đã mô phỏng. Chỉ truyện không có hồ sơ nhận văn xuôi thuần; tóm tắt là trích đoạn đầu, không thêm một lần gọi LLM.
 
 Sau đó Zod và engine kiểm tra toàn bộ hợp đồng: phiên bản prompt, trạng thái nhân vật, phạm vi chứng kiến, niềm tin có nguồn, sự thật bất biến, phát hiện và tiết lộ có chứng cứ, POV, sổ độc giả. Không tự tạo thought/intention/action/outcome/witnesses hoặc tự xác nhận editorial_check. Vụ án vẫn phải có reader_updates đầy đủ và tự kiểm tra của Người kể.

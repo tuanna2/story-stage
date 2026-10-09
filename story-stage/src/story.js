@@ -58,7 +58,12 @@ export function applyThreads(project, scene, turn, turnId, responsePath = '') {
     let thread = project.threads.find(t => t.id === update.thread_id);
     if (thread) {
       check(thread.known_by.includes(turn.actor_id), 'Người hành động chưa biết mạch truyện này.');
-      check(thread.kind === update.kind && thread.title === update.title && [...thread.character_ids].sort().join('|') === [...update.character_ids].sort().join('|'), 'Giữ loại, tiêu đề và nhân vật của mạch đã có; dùng ID mới nếu là một mạch khác.');
+      const identityErrors = [];
+      const prefix = `${responsePath ? `${responsePath}.` : ''}thread_updates.${updateIndex}`;
+      if (thread.kind !== update.kind) identityErrors.push({ path: `${prefix}.kind`, message: `Mạch ${thread.id} đã có loại ${thread.kind}; bản dán dùng ${update.kind}. Giữ loại đã lưu hoặc tạo thread_id mới cho mạch khác.` });
+      if ([...thread.character_ids].sort().join('|') !== [...update.character_ids].sort().join('|')) identityErrors.push({ path: `${prefix}.character_ids`, message: `Mạch ${thread.id} có nhân vật ${JSON.stringify(thread.character_ids)}; bản dán dùng ${JSON.stringify(update.character_ids)}. character_ids là người tham gia mạch; witnesses là người chứng kiến lượt. Giữ danh sách đã lưu hoặc dùng thread_id mới nếu là mạch khác.` });
+      if (thread.title !== update.title) identityErrors.push({ path: `${prefix}.title`, message: `Tiêu đề đã lưu: ${thread.title}. Khi ID, loại và nhân vật khớp, web dùng tiêu đề này. Nếu là mạch khác, tạo thread_id mới.` });
+      if (identityErrors.length) throw new DomainError(`Lượt ${scene.turns.length + 1} · mạch ${thread.id} thay đổi thông tin định danh.`, 422, identityErrors);
     } else {
       check(update.status === 'open', 'Mạch mới bắt đầu với status open.');
       check(project.threads.length < 200, 'Đã đạt 200 mạch truyện.');
