@@ -4,7 +4,7 @@ import { createProject, nextJob, acceptResponse, previewResponse, cancelJob, exp
 import { editManuscript, restoreVersion, rewriteJob, previewRewrite, acceptRewrite, setChapters, forkScene, patchWriting } from '../src/manuscript.js';
 import { hydrateStory } from '../src/story.js';
 import { characterView } from '../src/memory.js';
-import { batch, narration } from './fixtures.js';
+import { batch, narration, actor, resolution } from './fixtures.js';
 import { runCaseExample } from '../examples/case-fixture.js';
 import { diffParagraphs } from '../public/manuscript-ui.js';
 
@@ -73,6 +73,32 @@ test('Người vắng mặt giữ trạng thái mạch đã chứng kiến trư�
   acceptResponse(p, j.id, JSON.stringify(r));
   assert.equal(characterView(p, 'quan').story_threads.find(t => t.id === update.thread_id).status, 'resolved');
   assert.equal(characterView(p, 'lam').story_threads.find(t => t.id === update.thread_id).status, 'open');
+});
+
+test('Lỗi căn cứ mạch chỉ rõ actor, fact và đường dẫn; phân biệt ID thiếu, lặp và chưa biết', () => {
+  const p = createProject({ config: { batch_size: 1 } }), j = nextJob(p), before = structuredClone(p);
+  const update = { thread_id: 'thread_evidence', kind: 'question', title: 'Hồ sơ được giữ ở đâu', character_ids: ['phong'], status: 'open', excerpt: 'Câu hỏi được ghi lại nhưng chưa có câu trả lời.' };
+  for (const [evidence, message, index] of [[['secret_quan'], /chưa biết secret_quan/, 0], [['f_future'], /chưa tồn tại/, 0], [['f-arrival', 'f-arrival'], /bị lặp/, 1]]) {
+    const r = batch(p, j); r.turns[0].thread_updates = [{ ...update, evidence_fact_ids: evidence }];
+    assert.throws(() => acceptResponse(p, j.id, JSON.stringify(r)), e => {
+      assert.match(e.message, /Lượt 1.*Tần Phong.*thread_evidence/);
+      assert.equal(e.details[0].path, `turns.0.thread_updates.0.evidence_fact_ids.${index}`);
+      assert.match(e.details[0].message, message); return true;
+    });
+    assert.deepEqual(p, before);
+  }
+  const badClue = batch(p, j); badClue.turns[0].clue_discoveries = [{ clue_id: 'c_unconfigured', by: ['phong'], excerpt: badClue.turns[0].outcome }];
+  assert.throws(() => acceptResponse(p, j.id, JSON.stringify(badClue)), e => {
+    assert.match(e.message, /Chưa có hồ sơ vụ án/); assert.equal(e.details[0].path, 'turns.0.clue_discoveries'); return true;
+  });
+  assert.deepEqual(p, before);
+  const sameTurn = batch(p, j); sameTurn.turns[0].new_facts = [{ id: 'f_observed_now', text: 'Câu hỏi đã được ghi lại.', known_by: ['phong'] }];
+  sameTurn.turns[0].thread_updates = [{ ...update, evidence_fact_ids: ['f_observed_now'] }];
+  assert.ok(previewResponse(p, j.id, JSON.stringify(sameTurn)).valid);
+  const isolated = createProject({ config: { mode: 'isolated', max_turns: 1 } }), a = nextJob(isolated);
+  acceptResponse(isolated, a.id, JSON.stringify(actor(isolated, a))); const world = nextJob(isolated), result = resolution(isolated, world);
+  result.thread_updates = [{ ...update, excerpt: result.outcome, evidence_fact_ids: ['secret_quan'] }];
+  assert.throws(() => previewResponse(isolated, world.id, JSON.stringify(result)), e => e.details[0].path === 'thread_updates.0.evidence_fact_ids.0');
 });
 test('Sửa/khôi phục tạo lịch sử bất biến, giữ thế giới, ký ức và prompt mô phỏng đang chờ', () => {
   const p = ready(), s = p.scenes[0], original = structuredClone(s.versions[0]); nextJob(p);

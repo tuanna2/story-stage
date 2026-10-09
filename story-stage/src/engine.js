@@ -155,7 +155,7 @@ function applyResponse(project, jobId, raw) {
     for (const [i, t] of turns.entries()) {
       if (job.kind === 'resolution') assert(t.actor_id === job.actor_ids[i], `Lượt ${i + 1} sai người hành động, cần ${job.actor_ids[i]}.`);
       validateBeliefs(project, t.actor_id, t.belief_updates);
-      applyTurn(project, scene, t);
+      applyTurn(project, scene, t, job.kind === 'simulation' ? `turns.${i}` : '');
     }
     assert(project.characters.some(c => c.id === response.scene.pov_id), 'POV không có trong dàn nhân vật.');
     assert(scene.turns.some(t => t.witnesses.includes(response.scene.pov_id) || t.world_event?.witnesses.includes(response.scene.pov_id)), 'POV phải là người chứng kiến ít nhất một sự kiện của cảnh.');
@@ -214,16 +214,21 @@ function applyFacts(project, newFacts, reveals, witnesses, outcome, source, disc
     f.known_by = [...new Set([...f.known_by, ...r.to])];
   }
 }
-function applyTurn(project, scene, turn) {
+function applyTurn(project, scene, turn, responsePath) {
   assert(turn.witnesses.includes(turn.actor_id), 'Người hành động phải có trong witnesses.');
   const c = project.characters.find(x => x.id === turn.actor_id);
   assert(c?.status === 'active', 'Người hành động không sẵn sàng.');
+  if (!project.casefile) {
+    const fields = [['clue_discoveries', turn.clue_discoveries], ['interpretation_updates', turn.interpretation_updates], ['world_event.clue_discoveries', turn.world_event?.clue_discoveries]];
+    const details = fields.filter(([, updates]) => updates?.length).map(([field]) => ({ path: `${responsePath ? `${responsePath}.` : ''}${field}`, message: 'Dự án chưa có hồ sơ vụ án và danh sách clue_id. Trường này cần []; giữ quan sát có nguồn trong new_facts, không tự tạo manh mối của hồ sơ.' }));
+    if (details.length) throw new DomainError(`Chưa có hồ sơ vụ án: lượt ${scene.turns.length + 1} · ${c.name} không thể cập nhật manh mối theo clue_id.`, 422, details);
+  }
   validateInterpretations(project, c.id, turn.interpretation_updates);
   const source = { scene_number: scene.number, turn_id: `t_${scene.number}_${scene.turns.length + 1}`, source: 'action' };
   project.case_ledger.interpretations.push(...(turn.interpretation_updates || []).map(i => ({ ...i, character_id: c.id, ...source })));
   applyFacts(project, turn.new_facts, turn.reveals, turn.witnesses, turn.outcome, source, turn.clue_discoveries);
   if (turn.world_event) applyFacts(project, turn.world_event.new_facts, turn.world_event.reveals, turn.world_event.witnesses, turn.world_event.text, { ...source, source: 'world_event' }, turn.world_event.clue_discoveries);
-  applyThreads(project, scene, turn, source.turn_id);
+  applyThreads(project, scene, turn, source.turn_id, responsePath);
   c.mood = turn.mood;
   for (const b of turn.belief_updates || []) {
     const old = c.beliefs.find(x => x.text === b.text);

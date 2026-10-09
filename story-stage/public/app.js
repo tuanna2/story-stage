@@ -364,7 +364,8 @@ document.addEventListener('click', async event => {
       case 'confirm-cancel': await api(`/projects/${state.project.id}/jobs/${state.job.id}/cancel`, { method: 'POST', body: {} }); $('#dialog').close(); await loadProject(state.project.id); toast('Đã hủy prompt.'); break;
       case 'repair': {
         const errors = state.error ? `${state.error.message}\n${JSON.stringify(state.error.details || [])}` : 'Kiểm tra cấu trúc JSON và giữ nguyên ID, revision, kind.';
-        await copy(`Sửa câu trả lời sau để khớp hợp đồng gốc. Chỉ sửa cấu trúc/ID lỗi, không tạo lượt mới hay đổi diễn biến để lách kiểm tra. Giữ nguyên exchange_id, revision, scene_number, kind trong prompt. Chỉ trả một JSON đầy đủ.\n\nLỖI\n${errors}\n\nPROMPT GỐC\n${state.job.prompt}\n\nCÂU TRẢ LỜI CẦN SỬA\n${state.raw}`);
+        const rules = 'Với thread_updates, evidence_fact_ids phải có known_by chứa actor_id tại cuối lượt tương ứng. Bỏ căn cứ không phù hợp; không tự mở quyền biết hoặc thêm reveals không có nguồn. Giữ sự kiện và lời thoại.' + (!state.project.casefile ? ' Dự án chưa có hồ sơ vụ án: clue_discoveries và interpretation_updates cần [], kể cả trong world_event. Giữ quan sát đã xảy ra trong new_facts; không tự tạo clue_id.' : '');
+        await copy(`Sửa câu trả lời sau để khớp hợp đồng gốc. Chỉ sửa cấu trúc/ID/căn cứ lỗi, không tạo lượt mới hay đổi diễn biến để lách kiểm tra. Giữ nguyên exchange_id, revision, scene_number, kind trong prompt. Chỉ trả một JSON đầy đủ.\n${rules}\n\nLỖI\n${errors}\n\nPROMPT GỐC\n${state.job.prompt}\n\nCÂU TRẢ LỜI CẦN SỬA\n${state.raw}`);
         break;
       }
       case 'history-detail': {

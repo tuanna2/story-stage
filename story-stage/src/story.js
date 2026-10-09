@@ -32,13 +32,29 @@ export function storyThreads(project, characterId) {
     return [{ ...t, status: source.status, evidence_fact_ids: source.evidence_fact_ids || [], last_source: source }];
   });
 }
-export function applyThreads(project, scene, turn, turnId) {
+export function applyThreads(project, scene, turn, turnId, responsePath = '') {
   const ids = new Set();
-  for (const update of turn.thread_updates || []) {
+  for (const [updateIndex, update] of (turn.thread_updates || []).entries()) {
     check(!ids.has(update.thread_id), 'Một lượt không cập nhật cùng mạch truyện hai lần.'); ids.add(update.thread_id);
     check(update.character_ids.includes(turn.actor_id) && new Set(update.character_ids).size === update.character_ids.length && update.character_ids.every(id => turn.witnesses.includes(id)), 'Mạch truyện cần người hành động và những người có mặt trong witnesses.');
     check(hasExcerpt(`${turn.action}\n${turn.outcome}`, update.excerpt), 'Mạch truyện cần excerpt trích nguyên văn hành động hoặc kết quả.');
-    check(new Set(update.evidence_fact_ids).size === update.evidence_fact_ids.length && update.evidence_fact_ids.every(id => project.world.facts.some(f => f.id === id && f.known_by.includes(turn.actor_id))), 'Mạch truyện dùng sự thật chưa được người hành động biết.');
+    const path = `${responsePath ? `${responsePath}.` : ''}thread_updates.${updateIndex}.evidence_fact_ids`;
+    const actor = project.characters.find(c => c.id === turn.actor_id);
+    const details = [];
+    const seenEvidence = new Set();
+    for (const [index, id] of update.evidence_fact_ids.entries()) {
+      const fact = project.world.facts.find(f => f.id === id);
+      let message;
+      if (seenEvidence.has(id)) message = `ID ${id} bị lặp trong căn cứ của mạch ${update.thread_id}. Chỉ giữ một lần.`;
+      else if (!fact) message = `Sự thật ${id} chưa tồn tại tại lượt ${scene.turns.length + 1}. Dùng ID đã có trong dữ liệu; không dùng sự thật của lượt tương lai.`;
+      else if (!fact.known_by.includes(turn.actor_id)) {
+        const people = fact.known_by.map(person => project.characters.find(c => c.id === person)?.name || person);
+        message = `${actor.name} (${actor.id}) chưa biết ${id}. Hiện người biết: ${people.join(', ') || 'chỉ Thế giới'}. Bỏ ID này khỏi căn cứ nếu không cần, hoặc dùng một sự thật phù hợp mà actor đã biết. Chỉ thêm reveals khi hành động/kết quả thực sự có nguồn tiết lộ; không tự mở quyền biết để qua kiểm tra.`;
+      }
+      if (message) details.push({ path: `${path}.${index}`, message });
+      seenEvidence.add(id);
+    }
+    if (details.length) throw new DomainError(`Lượt ${scene.turns.length + 1} · ${actor.name} (${actor.id}): căn cứ mạch ${update.thread_id} chưa hợp lệ.`, 422, details);
     let thread = project.threads.find(t => t.id === update.thread_id);
     if (thread) {
       check(thread.known_by.includes(turn.actor_id), 'Người hành động chưa biết mạch truyện này.');

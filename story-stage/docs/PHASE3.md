@@ -47,6 +47,8 @@ Người hành động phải tham gia mạch; những người tham gia phải 
 
 Mạch bổ sung theo dõi tương tác. Đáp án vụ án vẫn được kiểm tra bởi hồ sơ, manh mối và sổ độc giả ở phase 2; đánh dấu một nghi vấn đã giải quyết không tự mở đáp án.
 
+Lỗi căn cứ chỉ rõ lượt, nhân vật, mạch và đường dẫn `evidence_fact_ids` cần sửa, phân biệt ID không tồn tại, bị lặp hoặc actor chưa biết. Có mặt trong sổ Thế giới không đồng nghĩa mọi nhân vật đã biết; căn cứ có thể dùng sự thật vừa được học từ kết quả đúng nguồn của lượt hiện tại. Prompt sửa kèm các chi tiết này. Dự án chưa có hồ sơ cố định cần để `clue_discoveries` và `interpretation_updates` rỗng, kể cả sự kiện thế giới; các dấu vết quan sát được vẫn có thể lưu thành `new_facts` đúng phạm vi biết.
+
 ## Sửa và phiên bản
 
 Trong **Bản thảo**, chọn cảnh rồi **Sửa văn xuôi**. Form có nội dung, tóm tắt biên tập và các trích đoạn nguồn nếu là vụ án. Có thể xem so sánh trước khi lưu. Người biên tập xác nhận đã giữ sự kiện, POV và nguồn tiết lộ.
@@ -103,6 +105,6 @@ Viết lại dùng các endpoint job `preview`, `commit`, `cancel` hiện có. P
 
 ## Kiểm chứng
 
-Unit/API kiểm tra phiên bản bất biến, lưu đồng thời, job xen kẽ, rollback, mạch riêng/người vắng mặt, nguồn trích đoạn, ngữ cảnh lịch sử, chương, nhánh, export và mở lại store. Bộ file có 78 kiểm tra; MySQL 8.4 và MariaDB Docker có 79 kiểm tra.
+Unit/API kiểm tra phiên bản bất biến, lưu đồng thời, job xen kẽ, rollback, mạch riêng/người vắng mặt, nguồn trích đoạn, ngữ cảnh lịch sử, chương, nhánh, export và mở lại store. Bộ file có 79 kiểm tra; MySQL 8.4 và MariaDB Docker có 80 kiểm tra.
 
 Kiểm tra giao diện desktop và 390 × 844 dùng các dự án fixture riêng: sửa → so sánh → khôi phục → viết lại → tải lại → chia chương → đổi thiết lập → lọc mạch → tạo nhánh; thử lỗi trích đoạn vụ án rồi sửa và nhập JSON kèm Markdown. Các fixture đã xóa sau kiểm tra, payload hai dự án ban đầu được đối chiếu hash và giữ nguyên, bản dán đang chờ được giữ. Kiểm tra này dùng nội dung viết sẵn, chưa chứng minh ChatGPT sẽ luôn đạt độ dài hay chất lượng ngang hai truyện tham khảo.
