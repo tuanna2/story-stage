@@ -6,6 +6,8 @@ import { buildCustomPreset } from './creator.js';
 import { buildPrompt, actorOrder } from './prompts.js';
 import { remember, summarizeScene } from './memory.js';
 import { hydrateMystery, initializeMystery, validateCasefile, validateClaims, validateInterpretations, applyDiscoveries, validateEvidenceReveal, applyReaderUpdates, pacingView } from './mystery.js';
+import { hydrateStory, checkpoint, applyThreads, qualityNotes } from './story.js';
+import { recordVersion, checkContinuity } from './manuscript.js';
 
 const uid = prefix => `${prefix}_${randomUUID()}`;
 const assert = (condition, message) => { if (!condition) throw new DomainError(message); };
@@ -48,13 +50,16 @@ export function validatePreset(preset) {
   if (preset.casefile) validateCasefile(preset, preset.casefile);
 }
 function addScene(project) {
-  project.scenes.push({ id: uid('s'), number: project.scenes.length + 1, status: 'simulating', title: '', location: project.world.location, time: project.world.time, atmosphere: '', turns: [], pov_id: null, end_reason: '', prose: null, summary: null });
+  project.scenes.push({ id: uid('s'), number: project.scenes.length + 1, status: 'simulating', title: '', location: project.world.location, time: project.world.time, atmosphere: '', turns: [], pov_id: null, end_reason: '', prose: null, summary: null, versions: [] });
+  hydrateStory(project); checkpoint(project, project.scenes.at(-1));
 }
 export function nextJob(project, guidance = '') {
   hydrateMystery(project);
+  hydrateStory(project);
   if (project.pending_job_id) return project.exchanges.find(x => x.id === project.pending_job_id);
   assert(project.status !== 'complete', 'Truyện đã đạt số cảnh tối đa.');
   const scene = project.scenes.at(-1);
+  checkpoint(project, scene);
   const kind = scene.status === 'awaiting_narration' ? 'narration' : project.pending_action ? 'resolution' : project.config.mode === 'isolated' ? 'character' : 'simulation';
   const count = kind === 'simulation' ? Math.min(project.config.batch_size, project.config.max_turns - scene.turns.length) : 1;
   const job = { id: uid('x'), kind, revision: project.revision, scene_number: scene.number, status: 'pending', guidance: guidance.trim().slice(0, 4000), actor_ids: kind === 'narration' ? [scene.pov_id] : project.pending_action ? [project.pending_action.character_id] : actorOrder(project, count), created_at: new Date().toISOString(), raw_response: null, response: null };
@@ -73,6 +78,9 @@ export function caseSetupJob(project, guidance = '') {
   return job;
 }
 export function cancelJob(project, jobId) {
+  if (project.pending_rewrite_job_id === jobId) {
+    project.exchanges.find(x => x.id === jobId).status = 'cancelled'; project.pending_rewrite_job_id = null; return;
+  }
   assert(project.pending_job_id === jobId, 'Prompt này không còn chờ câu trả lời.');
   project.exchanges.find(x => x.id === jobId).status = 'cancelled';
   project.pending_job_id = null;
@@ -84,6 +92,8 @@ export function previewResponse(project, jobId, raw) {
   const before = project.scenes.at(-1), scene = copy.scenes.find(s => s.id === before.id);
   return { valid: true, kind: response.kind, next_status: copy.status === 'complete' ? 'complete' : copy.pending_action ? 'awaiting_resolution' : copy.scenes.at(-1).status,
     normalized_response: response, import_notes: copy.exchanges.find(j => j.id === jobId).import_notes,
+    quality_notes: qualityNotes(project, response),
+    changed_threads: copy.threads.filter(t => JSON.stringify(t) !== JSON.stringify(project.threads?.find(old => old.id === t.id))),
     scene: { title: scene.title, status: scene.status, pov_id: scene.pov_id, end_reason: scene.end_reason },
     new_turns: scene.turns.slice(before.turns.length), new_facts: copy.world.facts.filter(f => !project.world.facts.some(old => old.id === f.id)),
     changed_moods: copy.characters.filter((c, i) => Object.keys(c.mood).some(k => c.mood[k] !== project.characters[i].mood[k])).map(c => ({ id: c.id, name: c.name, mood: c.mood })),
@@ -108,6 +118,7 @@ export function acceptResponse(project, jobId, raw) {
 
 function applyResponse(project, jobId, raw) {
   hydrateMystery(project);
+  hydrateStory(project);
   const job = project.exchanges.find(x => x.id === jobId);
   if (!job || job.status !== 'pending' || project.pending_job_id !== jobId) throw new DomainError('Prompt đã được nhập hoặc bị hủy. Không thể nhập lần thứ hai.', 409);
   if (job.revision !== project.revision) throw new DomainError('Prompt thuộc phiên bản cũ. Hãy tạo prompt mới từ trạng thái hiện tại.', 409);
@@ -131,13 +142,14 @@ function applyResponse(project, jobId, raw) {
       assert(c, 'Niềm tin ban đầu có nhân vật không tồn tại.');
       validateBeliefs(project, c.id, [belief]); c.beliefs.push(belief);
     }
+    checkpoint(project, scene, true);
   } else if (job.kind === 'character') {
     assert(response.character_id === job.actor_ids[0], 'Nhân vật trả lời không đúng người được chọn.');
     validateBeliefs(project, response.character_id, response.belief_updates);
     validateInterpretations(project, response.character_id, response.interpretation_updates);
     project.pending_action = response;
   } else if (job.kind === 'simulation' || job.kind === 'resolution') {
-    const turns = job.kind === 'simulation' ? response.turns : [{ ...project.pending_action, actor_id: project.pending_action.character_id, outcome: response.outcome, witnesses: response.witnesses, new_facts: response.new_facts, reveals: response.reveals, clue_discoveries: response.clue_discoveries, status_updates: response.status_updates, trust_updates: response.trust_updates, world_event: response.world_event }];
+    const turns = job.kind === 'simulation' ? response.turns : [{ ...project.pending_action, actor_id: project.pending_action.character_id, outcome: response.outcome, witnesses: response.witnesses, new_facts: response.new_facts, reveals: response.reveals, clue_discoveries: response.clue_discoveries, status_updates: response.status_updates, trust_updates: response.trust_updates, thread_updates: response.thread_updates, world_event: response.world_event }];
     assert(turns.length <= job.actor_ids.length, 'Có nhiều lượt hơn số yêu cầu.');
     assert(response.scene.ended || turns.length === job.actor_ids.length, 'Nếu cảnh chưa kết thúc, cần trả đủ số lượt trong prompt.');
     for (const [i, t] of turns.entries()) {
@@ -163,8 +175,10 @@ function applyResponse(project, jobId, raw) {
     const observableIds = scene.turns.filter(t => t.witnesses.includes(scene.pov_id) || t.world_event?.witnesses.includes(scene.pov_id)).map(t => t.id);
     assert(new Set(response.used_turn_ids).size === response.used_turn_ids.length, 'used_turn_ids có ID trùng.');
     assert(response.used_turn_ids.length === observableIds.length && response.used_turn_ids.every(id => observableIds.includes(id)), 'used_turn_ids phải khớp các lượt POV chứng kiến.');
-    applyReaderUpdates(project, scene, response);
-    scene.prose = response.prose; scene.summary = response.summary; scene.status = 'complete';
+    checkContinuity(response); applyReaderUpdates(project, scene, response);
+    scene.narrator_context = job.narrator_context || null;
+    recordVersion(project, scene, response, 'narration', { exchange_id: job.id });
+    scene.status = 'complete';
     summarizeScene(project, scene);
     if (project.scenes.length >= project.config.max_scenes || !project.characters.some(c => c.status === 'active')) project.status = 'complete';
     else addScene(project);
@@ -209,6 +223,7 @@ function applyTurn(project, scene, turn) {
   project.case_ledger.interpretations.push(...(turn.interpretation_updates || []).map(i => ({ ...i, character_id: c.id, ...source })));
   applyFacts(project, turn.new_facts, turn.reveals, turn.witnesses, turn.outcome, source, turn.clue_discoveries);
   if (turn.world_event) applyFacts(project, turn.world_event.new_facts, turn.world_event.reveals, turn.world_event.witnesses, turn.world_event.text, { ...source, source: 'world_event' }, turn.world_event.clue_discoveries);
+  applyThreads(project, scene, turn, source.turn_id);
   c.mood = turn.mood;
   for (const b of turn.belief_updates || []) {
     const old = c.beliefs.find(x => x.text === b.text);
@@ -247,6 +262,7 @@ export function exportPreset(project) {
     characters: project.characters.map(({ id, name, role, personality, background, goals, secret, limitations, mood, color, beliefs, trust, status }) => ({ id, name, role, personality, background, goals, secret, limitations, mood, color, beliefs, trust, status })), style: project.style };
 }
 export function exportStory(project) {
-  const chapters = project.scenes.filter(s => s.prose).map(s => `## Cảnh ${s.number}: ${s.title}\n\n${s.prose}`).join('\n\n');
+  hydrateStory(project);
+  const chapters = project.chapters.filter(c => c.scene_numbers.length).map(c => `## ${c.title}\n\n${c.scene_numbers.map(n => project.scenes.find(s => s.number === n)).map(s => `### Cảnh ${s.number}: ${s.title}\n\n${s.prose}`).join('\n\n')}`).join('\n\n');
   return `# ${project.name}\n\n${chapters || '*Chưa có cảnh văn xuôi nào.*'}\n`;
 }

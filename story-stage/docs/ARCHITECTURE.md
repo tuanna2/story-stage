@@ -2,6 +2,8 @@
 
 Phần bổ sung phase 2, hợp đồng manh mối/reader và migration: [PHASE2.md](PHASE2.md). Các mô hình lõi bên dưới tiếp tục được dùng cho truyện không có hồ sơ.
 
+Phase 3 bổ sung chất liệu, mạch riêng, phiên bản văn xuôi, chương và nhánh: [PHASE3.md](PHASE3.md).
+
 ## Vai trò và ranh giới
 
 | Module | Trách nhiệm | Quyền thay đổi trạng thái |
@@ -41,7 +43,7 @@ flowchart TD
 
 Gộp setup cảnh vào packet đầu; gộp phản ứng/cảm xúc/hành động/kết quả/sự kiện/điểm dừng/POV vào mỗi packet. Những bước lọc ký ức, chọn actor, lưu trạng thái và tóm tắt không cần hỏi ChatGPT.
 
-Với T lượt tối đa, B lượt/packet: **ceil(T / B) + 1** lần trao đổi mỗi cảnh. Default T=6, B=3 → 3 lần/cảnh. B=6 → 2 lần/cảnh. Không bao gồm sửa lỗi JSON.
+Với T lượt tối đa, B lượt/packet: **ceil(T / B) + 1** lần trao đổi mỗi cảnh. Mặc định truyện mới T=6, B=6 → 2 lần/cảnh; B=3 → 3 lần/cảnh. Không bao gồm sửa lỗi JSON hoặc viết lại tùy chọn.
 
 ## Luồng tách nhân vật
 
@@ -73,10 +75,13 @@ project
   characters[]: profile, goals[], secret, limitations[], status,
                 mood, beliefs[], trust{}, memories[]
   scenes[]: title, number, atmosphere, location, time,
-            turns[], pov_id, end_reason, prose, summary, status
+            turns[], pov_id, end_reason, prose, summary, status,
+            versions[], current_version_id, narrator_context, checkpoint
   exchanges[]: id, kind, base revision, prompt, raw response,
                parsed response, status, timestamps
   pending_job_id, pending_action, memory_sequence
+  threads[], chapters[], manuscript_revision, manuscript_events[]
+  pending_rewrite_job_id, branch_origin?
 ```
 
 Character status gồm `active`, `absent`, `dead`. Chỉ chọn `active`; `dead` không được chuyển lại thành người sống. `status_updates` của WorldAgent cần nhân vật có mặt trong witnesses và lý do cụ thể. Trong packet gộp, Thế giới chọn actor sau mỗi kết quả, có thể thay đổi thứ tự vì sự kiện. Không còn actor → viết cảnh cuối rồi kết thúc mô phỏng.
@@ -129,9 +134,9 @@ Mọi câu trả lời chứa:
 }
 ```
 
-Ngoài envelope, `simulation` chứa `scene` và `turns`. `character` chứa `character_id`, thought, intention, mood, action, belief_updates. `resolution` chứa scene, outcome, witnesses, new_facts, reveals, status_updates, trust_updates và world_event. `narration` chứa pov_id, prose, summary, used_turn_ids. Prompt luôn in một ví dụ JSON đầy đủ với ID đúng, không yêu cầu người dùng tự điền ID.
+Ngoài envelope, `simulation` chứa `scene` và `turns`. `character` chứa `character_id`, thought, intention, mood, action, belief_updates. `resolution` chứa scene, outcome, witnesses, new_facts, reveals, status_updates, trust_updates và world_event. Mô phỏng/phân xử có `thread_updates` tùy chọn. `narration` chứa pov_id, prose, summary, used_turn_ids; `rewrite` thêm base_version_id. Cả hai bước văn xuôi có thể gửi continuity_review. Prompt luôn in một ví dụ JSON đầy đủ với ID đúng, không yêu cầu người dùng tự điền ID.
 
-Schema chính thức ở [src/schema.js](../src/schema.js). JSON thuần hoặc một code fence được chấp nhận. Không tự tìm/bracket-extract JSON giữa một đoạn giải thích dài: việc đó có thể chọn nhầm đối tượng. Sai cấu trúc trả path lỗi cụ thể.
+Schema chính thức ở [src/schema.js](../src/schema.js). Bộ nhập nhận một JSON hoàn chỉnh, kể cả lời dẫn/code fence, lớp bọc output và một số lỗi cú pháp phổ biến. Có nhiều output hoặc bị cắt dở thì chặn, không ghép hay dựng phần còn thiếu. Metadata thiếu lấy từ job; metadata đã ghi sai vẫn bị chặn. Sai cấu trúc trả path lỗi cụ thể. Xem [IMPORT-AND-CREATION.md](IMPORT-AND-CREATION.md).
 
 Kiểm tra trước khi commit:
 
@@ -150,13 +155,14 @@ Kiểm tra bằng code không hiểu toàn bộ ngữ nghĩa: model có thể vi
 
 ## MySQL
 
-Schema ở [db/001_initial.sql](../db/001_initial.sql), dùng InnoDB + utf8mb4:
+Schema nền ở [db/001_initial.sql](../db/001_initial.sql), các bổ sung ở `002_case_setup.sql`, `003_manuscript.sql`, dùng InnoDB + utf8mb4:
 
 | Bảng | Nội dung | Bảo đảm |
 | --- | --- | --- |
 | `projects` | Canonical aggregate JSON, tên, revision, timestamps | Một hàng khóa được toàn bộ cảnh đang cập nhật |
 | `prompt_jobs` | Prompt, raw/parsed response, trạng thái, base revision | ID duy nhất, FK về project, lịch sử riêng |
 | `simulation_events` | Câu trả lời đã nhận theo revision | Unique `(project_id, revision)`, audit đã commit |
+| `manuscript_events` | Nhập/sửa/khôi phục/viết lại, chương và cách kể | Unique `(project_id, revision)` theo manuscript_revision |
 
 Chọn aggregate JSON cho phiên bản đầu vì một thao tác luôn thay nhiều phần của cảnh, world và memories. Các phần khác nhau vẫn có mô hình riêng trong JSON; dữ liệu có thể bổ sung projection/relational tables khi cần tìm kiếm hàng loạt nhân vật hoặc báo cáo liên truyện. Chưa tuyên bố schema hiện tại có các bảng relational characters/scenes/memories riêng.
 
@@ -168,12 +174,15 @@ SELECT payload FROM projects WHERE id=? FOR UPDATE
   → kiểm tra job pending/revision
   → dựng working copy, validate, apply
 UPDATE projects ...
-UPSERT prompt_jobs ...
-INSERT simulation_events ...
+UPSERT tất cả prompt_jobs có trạng thái hoặc response đổi ...
+INSERT simulation_events cho packet mô phỏng mới ...
+INSERT manuscript_events cho phiên bản/thao tác biên tập mới ...
 commit()
 ```
 
 Mọi statement trong transaction dùng cùng một connection từ pool. Hai request đồng thời cùng job: request thứ hai chờ khóa, sau đó đọc job đã consumed và nhận 409. Query dùng parameter binding. Lỗi bất kỳ rollback, không cập nhật dở dang.
+
+Một prompt mô phỏng và một prompt viết lại có thể pending cùng lúc. Mô phỏng dùng `revision`; biên tập dùng `manuscript_revision` và ID bản nguồn. Store đồng bộ từng job đã đổi, kể cả job nằm giữa lịch sử, và audit viết lại không tăng revision mô phỏng. Danh sách dự án đọc payload rồi sắp xếp theo updated_at trong Node để MySQL không phải filesort JSON lớn.
 
 Tham khảo chính thức: [Fastify validation](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/), [mysql2 Promise wrappers](https://sidorares.github.io/node-mysql2/docs/documentation/promise-wrapper).
 
@@ -191,6 +200,12 @@ Tham khảo chính thức: [Fastify validation](https://fastify.dev/docs/latest/
 | POST | `/api/projects/:id/jobs/:job/commit` | Nhập `{raw}` đúng một lần |
 | POST | `/api/projects/:id/jobs/:job/cancel` | Hủy prompt pending |
 | GET | `/api/projects/:id/export?format=...` | markdown / json / preset |
+| PATCH | `/api/projects/:id/writing` | Độ dài, giọng kể, batch cho prompt mới |
+| PUT | `/api/projects/:id/chapters` | Tên chương và nhóm cảnh theo thời gian |
+| POST | `/api/projects/:id/scenes/:scene/versions` | Tạo bản sửa trực tiếp |
+| POST | `/api/projects/:id/scenes/:scene/restore` | Tạo phiên bản từ bản đã chọn |
+| POST | `/api/projects/:id/scenes/:scene/rewrite` | Prompt viết lại độc lập |
+| POST | `/api/projects/:id/scenes/:scene/fork` | Dự án nhánh từ checkpoint trước cảnh |
 | GET | `/api/research` | Nhận xét hai truyện và nguồn |
 
 ## File và trách nhiệm
@@ -205,6 +220,9 @@ src/schema.js     Zod contract và parser
 src/presets.js    Các tình huống mở
 src/case-presets.js   Preset có hồ sơ quá khứ và chứng cứ
 src/mystery.js    Kiểm tra đồ thị, nguồn phát hiện/tiết lộ, POV và reader
+src/story.js      Mạch theo người biết, checkpoint và gợi ý chất liệu
+src/manuscript.js Phiên bản, nguồn Reader, viết lại, chương và nhánh
+public/manuscript-ui.js  Form biên tập, so sánh đoạn, copy/paste viết lại
 public/          Giao diện vanilla JS/CSS tiếng Việt
 test/            Engine, API, persistence và concurrency
 ```

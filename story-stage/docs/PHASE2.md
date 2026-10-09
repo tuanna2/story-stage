@@ -4,7 +4,7 @@ Phase này thêm sự thật quá khứ cố định, manh mối có hai cách �
 
 ## Dùng ngay
 
-1. Mở **http://127.0.0.1:4317**, chọn **Dàn dựng truyện mới**. Preset mặc định mới là **Hồ sơ dưới cơn mưa**: 4 nhân vật, 6 manh mối, 4 câu hỏi, đề xuất tối đa 8 cảnh.
+1. Mở **http://127.0.0.1:4317**, chọn **Dàn dựng truyện mới → Dùng preset → Hồ sơ dưới cơn mưa**: 4 nhân vật, 6 manh mối, 4 câu hỏi, đề xuất tối đa 8 cảnh. Các tab dàn dựng riêng vẫn hỗ trợ thể loại bất kỳ.
 2. Có thể sửa `casefile` và các `world.facts` liên kết trong JSON dàn dựng trước prompt đầu tiên. Hồ sơ là quá khứ đã xảy ra, không phải chuỗi cảnh tương lai.
 3. Trong **Hồ sơ vụ án**, mở phần sự thật nền nếu bạn muốn xem đáp án. Mỗi thẻ manh mối ghi điều kiện tiếp cận, cách hiểu bề mặt, cách đọc lại, người đã phát hiện và trích đoạn nguồn.
 4. Mô phỏng và viết văn xuôi theo luồng copy prompt → ChatGPT → paste JSON → xem trước → nhập. Không cần API.

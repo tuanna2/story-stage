@@ -7,11 +7,13 @@ import { createStore } from './store.js';
 import { createProject, cleanPreset, validatePreset, nextJob, caseSetupJob, cancelJob, acceptResponse, previewResponse, patchSetup, exportPreset, exportStory } from './engine.js';
 import { buildSetupPrompt, importSetup } from './creator.js';
 import { readerView } from './mystery.js';
+import { editManuscript, restoreVersion, setChapters, rewriteJob, previewRewrite, acceptRewrite, forkScene, patchWriting } from './manuscript.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const objectBody = properties => ({ type: 'object', properties, additionalProperties: false });
 const rawBody = { ...objectBody({ raw: { type: 'string', minLength: 2, maxLength: 1000000 } }), required: ['raw'] };
 const params = { type: 'object', properties: { id: { type: 'string', pattern: '^p_[a-f0-9-]+$' }, job: { type: 'string', pattern: '^x_[a-f0-9-]+$' } }, required: ['id'] };
+const sceneParams = { ...params, properties: { ...params.properties, scene: { type: 'string', pattern: '^[1-9][0-9]?$' } }, required: ['id', 'scene'] };
 
 export async function buildApp({ store, logger = false } = {}) {
   store ||= await createStore();
@@ -51,11 +53,20 @@ export async function buildApp({ store, logger = false } = {}) {
   app.post('/api/projects', { schema: { body: objectBody({ name: { type: 'string', maxLength: 120 }, preset_id: { type: 'string' }, preset: { type: 'object' }, custom: { type: 'object' }, config: { type: 'object' } }) } }, async (req, reply) => reply.code(201).send(await store.create(createProject(req.body))));
   app.get('/api/projects/:id', { schema: { params } }, req => store.get(req.params.id));
   app.get('/api/projects/:id/reader', { schema: { params } }, async req => readerView(await store.get(req.params.id)));
+  app.patch('/api/projects/:id/writing', { schema: { params, body: objectBody({ manuscript_revision: { type: 'integer' }, words: { type: 'integer' }, batch_size: { type: 'integer' }, voice: { type: 'string' }, guidance: { type: 'string' } }) } }, req => store.mutate(req.params.id, p => patchWriting(p, req.body)));
+  app.put('/api/projects/:id/chapters', { schema: { params, body: objectBody({ manuscript_revision: { type: 'integer' }, chapters: { type: 'array' } }) } }, req => store.mutate(req.params.id, p => { setChapters(p, req.body); return p; }));
+  app.post('/api/projects/:id/scenes/:scene/versions', { schema: { params: sceneParams, body: objectBody({ base_version_id: { type: 'string' }, prose: { type: 'string' }, summary: { type: 'string' }, reader_updates: { type: 'object' }, confirmed: { type: 'boolean' } }) } }, req => store.mutate(req.params.id, p => { editManuscript(p, req.params.scene, req.body); return p; }));
+  app.post('/api/projects/:id/scenes/:scene/restore', { schema: { params: sceneParams, body: { ...objectBody({ base_version_id: { type: 'string' }, version_id: { type: 'string' } }), required: ['base_version_id', 'version_id'] } } }, req => store.mutate(req.params.id, p => { restoreVersion(p, req.params.scene, req.body); return p; }));
+  app.post('/api/projects/:id/scenes/:scene/rewrite', { schema: { params: sceneParams, body: { ...objectBody({ base_version_id: { type: 'string' }, guidance: { type: 'string', maxLength: 4000 } }), required: ['base_version_id'] } } }, req => store.mutate(req.params.id, p => rewriteJob(p, req.params.scene, req.body)));
+  app.post('/api/projects/:id/scenes/:scene/fork', { schema: { params: sceneParams, body: objectBody({ name: { type: 'string', maxLength: 120 } }) } }, async (req, reply) => reply.code(201).send(await store.create(forkScene(await store.get(req.params.id), req.params.scene, req.body.name))));
   app.patch('/api/projects/:id/setup', { schema: { params, body: objectBody({ name: { type: 'string', maxLength: 120 }, preset: { type: 'object' }, config: { type: 'object' } }) } }, async req => store.mutate(req.params.id, p => { patchSetup(p, req.body); return p; }));
   app.post('/api/projects/:id/jobs', { schema: { params, body: objectBody({ guidance: { type: 'string', maxLength: 4000 } }) } }, req => store.mutate(req.params.id, p => nextJob(p, req.body.guidance || '')));
   app.post('/api/projects/:id/case/jobs', { schema: { params, body: objectBody({ guidance: { type: 'string', maxLength: 4000 } }) } }, req => store.mutate(req.params.id, p => caseSetupJob(p, req.body.guidance || '')));
-  app.post('/api/projects/:id/jobs/:job/preview', { schema: { params, body: rawBody } }, async req => previewResponse(await store.get(req.params.id), req.params.job, req.body.raw));
-  app.post('/api/projects/:id/jobs/:job/commit', { schema: { params, body: rawBody } }, req => store.mutate(req.params.id, p => { acceptResponse(p, req.params.job, req.body.raw); return p; }));
+  app.post('/api/projects/:id/jobs/:job/preview', { schema: { params, body: rawBody } }, async req => {
+    const p = await store.get(req.params.id);
+    return p.exchanges.find(j => j.id === req.params.job)?.kind === 'rewrite' ? previewRewrite(p, req.params.job, req.body.raw) : previewResponse(p, req.params.job, req.body.raw);
+  });
+  app.post('/api/projects/:id/jobs/:job/commit', { schema: { params, body: rawBody } }, req => store.mutate(req.params.id, p => { if (p.exchanges.find(j => j.id === req.params.job)?.kind === 'rewrite') acceptRewrite(p, req.params.job, req.body.raw); else acceptResponse(p, req.params.job, req.body.raw); return p; }));
   app.post('/api/projects/:id/jobs/:job/cancel', { schema: { params, body: objectBody({}) } }, req => store.mutate(req.params.id, p => { cancelJob(p, req.params.job); return p; }));
   app.get('/api/projects/:id/export', { schema: { params, querystring: { type: 'object', properties: { format: { type: 'string', enum: ['markdown', 'json', 'preset'] } }, additionalProperties: false } } }, async (req, reply) => {
     const p = await store.get(req.params.id), format = req.query.format || 'markdown';

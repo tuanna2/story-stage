@@ -40,20 +40,26 @@ export const presetSchema = z.object({
 
 const reveal = z.object({ fact_id: id, to: z.array(id).min(1).max(8), evidence_clue_ids: z.array(id).max(12).default([]), source_character_id: id.nullable().default(null), excerpt: z.string().max(2000).default('') }).strict();
 const statusUpdates = z.array(z.object({ character_id: id, status: z.enum(['active', 'absent', 'dead']), reason: text.max(1200) }).strict()).max(8).default([]);
+const threadUpdates = z.array(z.object({ thread_id: id, kind: z.enum(['goal', 'conflict', 'promise', 'question', 'relationship']), title: text, character_ids: z.array(id).min(1).max(8), status: z.enum(['open', 'resolved', 'abandoned']), evidence_fact_ids: z.array(id).max(12), excerpt: text.max(2000) }).strict()).max(6).default([]);
 const turnSchema = z.object({
-  actor_id: id, thought: text.max(1600), intention: text.max(1600), mood: moodSchema, action: text.max(3000), outcome: text.max(4000),
+  actor_id: id, thought: text.max(1600), intention: text.max(1600), mood: moodSchema, action: text.max(6000), outcome: text.max(8000),
   witnesses: z.array(id).min(1).max(8), new_facts: z.array(factSchema).max(8), reveals: z.array(reveal).max(8),
   belief_updates: z.array(beliefSchema).max(4).default([]), status_updates: statusUpdates,
-  clue_discoveries: clueDiscoveries, interpretation_updates: interpretationUpdates,
+  clue_discoveries: clueDiscoveries, interpretation_updates: interpretationUpdates, thread_updates: threadUpdates,
   trust_updates: z.array(z.object({ target_id: id, delta: z.number().min(-30).max(30), reason: text.max(800) }).strict()).max(8).default([]),
   world_event: z.object({ text: text.max(3000), witnesses: z.array(id).min(1).max(8), new_facts: z.array(factSchema).max(8), reveals: z.array(reveal).max(8), status_updates: statusUpdates, clue_discoveries: clueDiscoveries }).strict().nullable(),
 }).strict();
 const sceneSchema = z.object({ title: text.max(200), location: text.max(200), time: text.max(200), atmosphere: text.max(1600), pressure: z.number().min(0).max(100), ended: z.boolean(), end_reason: z.string().max(1600), pov_id: id, next_actor_id: id.nullable().default(null) }).strict();
 const envelope = { exchange_id: id, revision: z.number().int().min(0), scene_number: z.number().int().min(1) };
 export const batchResponseSchema = z.object({ ...envelope, kind: z.literal('simulation'), scene: sceneSchema, turns: z.array(turnSchema).min(1).max(6) }).strict();
-export const actorResponseSchema = z.object({ ...envelope, kind: z.literal('character'), character_id: id, thought: text.max(1600), intention: text.max(1600), mood: moodSchema, action: text.max(3000), belief_updates: z.array(beliefSchema).max(4).default([]), interpretation_updates: interpretationUpdates }).strict();
-export const resolutionResponseSchema = z.object({ ...envelope, kind: z.literal('resolution'), scene: sceneSchema, outcome: text.max(4000), witnesses: z.array(id).min(1).max(8), new_facts: z.array(factSchema).max(8), reveals: z.array(reveal).max(8), status_updates: statusUpdates, clue_discoveries: clueDiscoveries, trust_updates: turnSchema.shape.trust_updates, world_event: turnSchema.shape.world_event }).strict();
-export const narrationResponseSchema = z.object({ ...envelope, kind: z.literal('narration'), pov_id: id, prose: text.max(80000), summary: text.max(4000), used_turn_ids: z.array(id).min(1).max(20), reader_updates: readerUpdatesSchema.optional(), editorial_check: editorialCheck.optional() }).strict();
+export const actorResponseSchema = z.object({ ...envelope, kind: z.literal('character'), character_id: id, thought: text.max(1600), intention: text.max(1600), mood: moodSchema, action: text.max(6000), belief_updates: z.array(beliefSchema).max(4).default([]), interpretation_updates: interpretationUpdates }).strict();
+export const resolutionResponseSchema = z.object({ ...envelope, kind: z.literal('resolution'), scene: sceneSchema, outcome: text.max(8000), witnesses: z.array(id).min(1).max(8), new_facts: z.array(factSchema).max(8), reveals: z.array(reveal).max(8), status_updates: statusUpdates, clue_discoveries: clueDiscoveries, thread_updates: threadUpdates, trust_updates: turnSchema.shape.trust_updates, world_event: turnSchema.shape.world_event }).strict();
+const continuityReview = z.object({ timeline_consistent: z.boolean(), no_repetition: z.boolean(), character_consistent: z.boolean(), notes: z.array(text.max(2000)).max(12) }).strict();
+export const narrationResponseSchema = z.object({ ...envelope, kind: z.literal('narration'), pov_id: id, prose: text.max(80000), summary: text.max(4000), used_turn_ids: z.array(id).min(1).max(20), reader_updates: readerUpdatesSchema.optional(), editorial_check: editorialCheck.optional(), continuity_review: continuityReview.optional() }).strict();
+export const rewriteResponseSchema = narrationResponseSchema.extend({ kind: z.literal('rewrite'), base_version_id: id });
+export const manuscriptEditSchema = z.object({ base_version_id: id, prose: text.max(80000), summary: text.max(4000), reader_updates: readerUpdatesSchema.optional(), confirmed: z.literal(true) }).strict();
+export const chaptersSchema = z.object({ manuscript_revision: z.number().int().min(0), chapters: z.array(z.object({ id, title: text.max(200), scene_numbers: z.array(z.number().int().min(1)).max(30) }).strict()).min(1).max(30) }).strict();
+export const writingSchema = z.object({ manuscript_revision: z.number().int().min(0), words: z.number().int().min(200).max(2000), batch_size: configSchema.shape.batch_size, voice: text, guidance: text }).strict();
 export const caseSetupResponseSchema = z.object({ ...envelope, kind: z.literal('case_setup'), casefile: casefileSchema, new_facts: z.array(factSchema).max(80), initial_beliefs: z.array(z.object({ character_id: id, ...beliefSchema.shape }).strict()).max(24) }).strict();
 
 export function parseSchema(schema, value) {

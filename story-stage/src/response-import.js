@@ -6,9 +6,10 @@ const object = value => value !== null && typeof value === 'object' && !Array.is
 // Normalize representation only. Decisions, witnesses, outcomes and evidence
 // must still come from the response and pass the engine's domain checks.
 export function importResponse(raw, project, job) {
-  const scene = project.scenes.at(-1);
+  const scene = job.kind === 'rewrite' ? project.scenes.find(s => s.number === job.scene_number) : project.scenes.at(-1);
+  const narrative = ['narration', 'rewrite'].includes(job.kind);
   let value, notes;
-  if (job.kind === 'narration' && !project.casefile && typeof raw === 'string' && raw.trim() && !/[\[{}\]]/.test(raw) && !raw.trim().startsWith('```')) {
+  if (narrative && !project.casefile && typeof raw === 'string' && raw.trim() && !/[\[{}\]]/.test(raw) && !raw.trim().startsWith('```')) {
     if (Buffer.byteLength(raw, 'utf8') > 1000000) throw new DomainError('Câu trả lời tối đa 1 MB.');
     value = { prose: raw.trim(), summary: raw.trim().slice(0, 280) };
     notes = ['Đã dùng văn xuôi cho bước Người kể. Tóm tắt biên tập là trích đoạn đầu; POV và lượt nguồn lấy từ cảnh đã hoàn tất.'];
@@ -22,7 +23,7 @@ export function importResponse(raw, project, job) {
     if (Object.hasOwn(obj, to) && JSON.stringify(obj[from]) !== JSON.stringify(obj[to])) throw new DomainError(`Hai trường ${from} và ${to} có nội dung khác nhau. Chỉ giữ trường ${to} theo mẫu.`);
     obj[to] = obj[from]; delete obj[from]; add(`Đổi tên trường ${from} thành ${to}.`);
   };
-  if (job.kind === 'narration') { alias(value, 'narrative', 'prose'); alias(value, 'story_text', 'prose'); }
+  if (narrative) { alias(value, 'narrative', 'prose'); alias(value, 'story_text', 'prose'); }
   if (['simulation', 'resolution'].includes(job.kind)) alias(value, 'scene_update', 'scene');
   for (const [key, data] of Object.entries({ exchange_id: job.id, revision: job.revision, scene_number: job.scene_number, kind: job.kind })) fill(value, key, data);
   if (value.kind !== job.kind) throw new DomainError(`Prompt đang chờ bước “${job.kind}”, nhưng bản dán là “${value.kind}”. Dán câu trả lời của prompt đang chờ.`, 422, [{ path: 'kind', message: `Cần ${job.kind}.` }]);
@@ -42,7 +43,7 @@ export function importResponse(raw, project, job) {
     return x;
   };
   const charKeys = new Set(['actor_id', 'character_id', 'pov_id', 'next_actor_id', 'target_id', 'source_character_id']);
-  const charLists = new Set(['witnesses', 'known_by', 'by', 'to']);
+  const charLists = new Set(['witnesses', 'known_by', 'by', 'to', 'character_ids']);
   const numberKeys = new Set(['revision', 'scene_number', 'fear', 'anger', 'hope', 'guilt', 'pressure', 'confidence', 'delta']);
   function walk(obj, path = '') {
     if (!object(obj) && !Array.isArray(obj)) return;
@@ -81,7 +82,7 @@ export function importResponse(raw, project, job) {
     for (const key of ['location', 'time', 'pressure']) fill(value.scene, key, project.world[key], `scene.${key}`);
     if (value.scene.ended === false) fill(value.scene, 'end_reason', '', 'scene.end_reason');
   }
-  if (job.kind === 'narration') {
+  if (narrative) {
     fill(value, 'pov_id', scene.pov_id);
     fill(value, 'used_turn_ids', scene.turns.filter(t => t.witnesses.includes(scene.pov_id) || t.world_event?.witnesses.includes(scene.pov_id)).map(t => t.id));
     // Reader evidence and editorial checks are never synthesized.

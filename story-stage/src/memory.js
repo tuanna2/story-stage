@@ -1,4 +1,5 @@
 import { knownClues } from './mystery.js';
+import { storyThreads } from './story.js';
 const terms = text => new Set(text.toLocaleLowerCase('vi').match(/[\p{L}\p{N}]{2,}/gu) || []);
 export function retrieveMemories(character, query, limit = 12) {
   const keywords = terms(query);
@@ -33,6 +34,7 @@ export function characterView(project, characterId) {
     goals: c.goals, secret: c.secret, limitations: c.limitations, mood: c.mood, beliefs: c.beliefs, trust: c.trust,
     known_facts: project.world.facts.filter(f => f.known_by.includes(c.id)).map(({ id, text }) => ({ id, text })),
     known_clues: knownClues(project, c.id), own_interpretations: project.case_ledger?.interpretations.filter(i => i.character_id === c.id) || [],
+    story_threads: storyThreads(project, c.id),
     memories: retrieveMemories(c, `${c.goals.join(' ')} ${project.world.location}`, project.config.memory_limit),
     observable_scene: { number: scene.number, location: scene.location || project.world.location, time: scene.time || project.world.time },
     others: project.characters.filter(x => x.id !== c.id).map(({ id, name, role }) => ({ id, name, role })),

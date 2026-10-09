@@ -36,7 +36,7 @@ test('Tạo lại trả prompt đang chờ; hủy làm prompt cũ vô hiệu', (
   assert.notEqual(nextJob(p).id, j.id);
 });
 test('Preview không đổi trạng thái; nhập một lần tăng revision', () => {
-  const p = createProject({}), j = nextJob(p), raw = JSON.stringify(batch(p, j));
+  const p = createProject({ config: { batch_size: 3 } }), j = nextJob(p), raw = JSON.stringify(batch(p, j));
   const before = JSON.stringify(p), preview = previewResponse(p, j.id, raw);
   assert.equal(preview.new_turns.length, 3); assert.equal(JSON.stringify(p), before);
   acceptResponse(p, j.id, raw); assert.equal(p.revision, 1); assert.equal(p.scenes[0].turns.length, 3);

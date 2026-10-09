@@ -26,7 +26,7 @@ export function buildCustomPreset(input) {
 
 const briefSchema = z.object({ name: text.max(120), genre: text.max(120), idea: text,
   constraints: optional, voice: text.max(2000).default('Văn xuôi tiếng Việt, POV giới hạn, đối thoại tự nhiên.'),
-  words: z.number().int().min(200).max(2000).default(900), character_count: z.number().int().min(2).max(8).default(4),
+  words: z.number().int().min(200).max(2000).default(1500), character_count: z.number().int().min(2).max(8).default(4),
 }).strict();
 
 export function buildSetupPrompt(input) {

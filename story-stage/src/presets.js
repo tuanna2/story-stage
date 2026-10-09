@@ -29,7 +29,7 @@ export const presets = [
       character('lam', 'Lâm Tước', 'Đội trưởng điều tra', 'Quyết đoán, đề cao chứng cứ, khó thay đổi nhận định ban đầu.', 'Đang chịu sức ép vì vụ mất tích. Tin rằng mình có thể lần ra mọi dấu vết.', ['Tìm người mất tích trước khi quá muộn', 'Giữ quyền kiểm soát cuộc điều tra'], 'Anh đã bỏ qua một cuộc gọi của Tề Quân và đang tự biện hộ cho lựa chọn ấy.', [], mood(26, 42, 55, 12), '#6ccfbd'),
       character('tu', 'Bác Từ', 'Người trông kho hồ sơ', 'Điềm đạm, ít nói; tránh rắc rối nhưng quý người chân thành.', 'Làm việc ở đồn đã lâu. Biết những hồ sơ nào vẫn còn trong kho giấy.', ['Kết thúc ca trực yên ổn', 'Giúp một người đang thật sự cần giúp'], 'Ông giữ một bản sao cũ trong ngăn tủ, chưa quyết định có nên đưa ra.', [], mood(18, 8, 47, 24), '#82b1f5'),
     ],
-    style: { voice: 'Ngôi thứ nhất giới hạn, giọng kể căng thẳng và tiết chế.', guidance: 'Để đối thoại và chi tiết cảm giác mang thông tin. Phân biệt điều POV biết và điều POV đoán. Manh mối đổi nghĩa khi có chứng cứ mới; không tạo cú twist vô cớ.', words: 650 },
+    style: { voice: 'Ngôi thứ nhất giới hạn, giọng kể căng thẳng và tiết chế.', guidance: 'Để đối thoại và chi tiết cảm giác mang thông tin. Phân biệt điều POV biết và điều POV đoán. Manh mối đổi nghĩa khi có chứng cứ mới; không tạo cú twist vô cớ.', words: 1500 },
   },
   {
     id: 'escape', name: 'Đêm mưa sau hàng rào', genre: 'Sinh tồn · tâm lý',
@@ -53,9 +53,9 @@ export const presets = [
       character('lytu', 'Lý Tử', 'Người vừa có đặc quyền', 'Tỉnh táo, kín đáo; biết dùng sự im lặng để bảo vệ mình.', 'Từng chia phần ăn với Tiểu Hoa. Nay có điều kiện sống tốt hơn nhưng vẫn bị kiểm soát.', ['Bảo vệ chút an toàn vừa giành được', 'Trả món nợ với Tiểu Hoa mà không để lộ mình'], 'Cô nghe tin những người được chuyển đi chưa chắc đã tự do.', [], mood(44, 32, 37, 61), '#efad77'),
       character('tai', 'Tài Gia', 'Người quản lý', 'Giỏi đọc sự sợ hãi, luôn tính lợi ích; ghét việc nằm ngoài dự đoán.', 'Được giao duy trì hoạt động, nhưng cũng bị cấp trên giám sát.', ['Giữ trật tự trước đợt kiểm tra', 'Giữ quyền lực và che giấu sai sót'], 'Ông sợ bản báo cáo sáng mai hơn là những lời đe dọa của người bị giữ.', [], mood(39, 27, 65, 5), '#82b1f5'),
     ],
-    style: { voice: 'Ngôi thứ nhất giới hạn, văn xuôi sinh tồn giàu cảm giác.', guidance: 'Dùng hy vọng ngắn ngủi và cái giá của lựa chọn để tạo căng thẳng. Đồng minh có mục tiêu riêng, có thể do dự hoặc thay đổi. Không định trước việc thoát thành công hay thất bại.', words: 650 },
+    style: { voice: 'Ngôi thứ nhất giới hạn, văn xuôi sinh tồn giàu cảm giác.', guidance: 'Dùng hy vọng ngắn ngủi và cái giá của lựa chọn để tạo căng thẳng. Đồng minh có mục tiêu riêng, có thể do dự hoặc thay đổi. Không định trước việc thoát thành công hay thất bại.', words: 1500 },
   },
 ];
 
-export const defaultConfig = { mode: 'batch', max_scenes: 6, max_turns: 6, batch_size: 3, memory_limit: 12 };
+export const defaultConfig = { mode: 'batch', max_scenes: 6, max_turns: 6, batch_size: 6, memory_limit: 12 };
 presets.push(createMysteryPreset(presets[0]));

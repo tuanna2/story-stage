@@ -4,13 +4,15 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DomainError } from './schema.js';
 import { hydrateMystery } from './mystery.js';
+import { hydrateStory } from './story.js';
+const hydrate = project => hydrateStory(hydrateMystery(project));
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const projectSummary = p => ({ id: p.id, name: p.name, genre: p.genre, status: p.status, revision: p.revision, scene_count: p.scenes.filter(s => s.status === 'complete').length, max_scenes: p.config.max_scenes, updated_at: p.updated_at, cast_count: p.characters.length });
 export class FileStore {
   constructor(path = resolve(root, '.data/projects.json')) { this.path = path; this.queue = Promise.resolve(); this.mode = 'file'; }
   async init() { await mkdir(dirname(this.path), { recursive: true }); try { await readFile(this.path, 'utf8'); } catch (e) { if (e.code !== 'ENOENT') throw e; await writeFile(this.path, '{}', { flag: 'wx' }); } }
-  async read() { const data = JSON.parse(await readFile(this.path, 'utf8')); Object.values(data).forEach(hydrateMystery); return data; }
+  async read() { const data = JSON.parse(await readFile(this.path, 'utf8')); Object.values(data).forEach(hydrate); return data; }
   async locked(fn) {
     const previous = this.queue;
     let release;
@@ -49,8 +51,12 @@ export class MySQLStore {
       }
     } finally { if (locked) await conn.query('SELECT RELEASE_LOCK(?)', [locked]); conn.release(); }
   }
-  parse(payload) { return hydrateMystery(typeof payload === 'string' ? JSON.parse(payload) : payload); }
-  async list() { const [rows] = await this.pool.query('SELECT payload FROM projects ORDER BY updated_at DESC'); return rows.map(r => projectSummary(this.parse(r.payload))); }
+  parse(payload) { return hydrate(typeof payload === 'string' ? JSON.parse(payload) : payload); }
+  async list() {
+    // Sorting aggregate JSON in MySQL can exhaust filesort memory as stories grow.
+    const [rows] = await this.pool.query('SELECT payload, updated_at FROM projects');
+    return rows.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).map(r => projectSummary(this.parse(r.payload)));
+  }
   async get(id) { const [rows] = await this.pool.execute('SELECT payload FROM projects WHERE id = ?', [id]); if (!rows[0]) throw new DomainError('Không tìm thấy truyện.', 404); return this.parse(rows[0].payload); }
   async create(p) { await this.pool.execute('INSERT INTO projects (id, name, revision, payload) VALUES (?, ?, ?, ?)', [p.id, p.name, p.revision, JSON.stringify(p)]); return p; }
   async mutate(id, fn) {
@@ -60,11 +66,16 @@ export class MySQLStore {
       const [rows] = await conn.execute('SELECT payload FROM projects WHERE id = ? FOR UPDATE', [id]);
       if (!rows[0]) throw new DomainError('Không tìm thấy truyện.', 404);
       const project = this.parse(rows[0].payload), oldRevision = project.revision;
+      const oldManuscriptRevision = project.manuscript_revision;
+      const previousJobs = new Map(project.exchanges.map(j => [j.id, JSON.stringify([j.status, j.raw_response, j.response])]));
       const result = await fn(project);
       await conn.execute('UPDATE projects SET name = ?, revision = ?, payload = ? WHERE id = ?', [project.name, project.revision, JSON.stringify(project), id]);
-      const job = project.exchanges.at(-1);
-      if (job) await conn.execute('INSERT INTO prompt_jobs (id, project_id, base_revision, kind, status, prompt, raw_response, parsed_response) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), raw_response = VALUES(raw_response), parsed_response = VALUES(parsed_response)', [job.id, id, job.revision, job.kind, job.status, job.prompt, job.raw_response, job.response ? JSON.stringify(job.response) : null]);
-      if (project.revision > oldRevision && job?.status === 'consumed' && job.consumed_revision === project.revision) await conn.execute('INSERT INTO simulation_events (project_id, revision, exchange_id, payload) VALUES (?, ?, ?, ?)', [id, project.revision, job.id, JSON.stringify(job.response)]);
+      for (const job of project.exchanges) {
+        if (previousJobs.get(job.id) === JSON.stringify([job.status, job.raw_response, job.response])) continue;
+        await conn.execute('INSERT INTO prompt_jobs (id, project_id, base_revision, kind, status, prompt, raw_response, parsed_response) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), raw_response = VALUES(raw_response), parsed_response = VALUES(parsed_response)', [job.id, id, job.revision, job.kind, job.status, job.prompt, job.raw_response, job.response ? JSON.stringify(job.response) : null]);
+        if (project.revision > oldRevision && job.kind !== 'rewrite' && job.status === 'consumed' && job.consumed_revision === project.revision) await conn.execute('INSERT INTO simulation_events (project_id, revision, exchange_id, payload) VALUES (?, ?, ?, ?)', [id, project.revision, job.id, JSON.stringify(job.response)]);
+      }
+      for (const event of project.manuscript_events.filter(e => e.revision > oldManuscriptRevision)) await conn.execute('INSERT INTO manuscript_events (project_id, revision, action, payload) VALUES (?, ?, ?, ?)', [id, event.revision, event.action, JSON.stringify(event)]);
       await conn.commit(); return result;
     } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
   }

@@ -1,3 +1,4 @@
+import { createManuscriptUI } from './manuscript-ui.js';
 const $ = (q, root = document) => root.querySelector(q);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icons = {
@@ -23,8 +24,8 @@ const icons = {
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
 };
 const icon = name => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.spark}</svg>`;
-const labels = { stage: 'Sân khấu', exchange: 'Trao đổi ChatGPT', characters: 'Dàn nhân vật', world: 'Thế giới', mystery: 'Hồ sơ vụ án', reader: 'Góc nhìn độc giả', manuscript: 'Bản thảo', history: 'Lịch sử prompt', research: 'Từ hai truyện mẫu' };
-const kinds = { simulation: 'Mô phỏng cụm lượt', character: 'Nhân vật chọn hành động', resolution: 'Thế giới phân xử', narration: 'Người kể viết cảnh', case_setup: 'Chuẩn bị hồ sơ vụ án' };
+const labels = { stage: 'Sân khấu', exchange: 'Trao đổi ChatGPT', characters: 'Dàn nhân vật', world: 'Thế giới', mystery: 'Hồ sơ vụ án', reader: 'Góc nhìn độc giả', manuscript: 'Bản thảo', threads: 'Mạch truyện', history: 'Lịch sử prompt', research: 'Từ hai truyện mẫu' };
+const kinds = { simulation: 'Mô phỏng cụm lượt', character: 'Nhân vật chọn hành động', resolution: 'Thế giới phân xử', narration: 'Người kể viết cảnh', case_setup: 'Chuẩn bị hồ sơ vụ án', rewrite: 'Viết lại bản thảo' };
 const moods = { fear: 'Sợ hãi', anger: 'Giận dữ', hope: 'Hy vọng', guilt: 'Day dứt' };
 const statuses = { active: 'Có thể hành động', absent: 'Tạm vắng', dead: 'Đã chết' };
 const state = { projects: [], presets: [], project: null, reader: null, view: 'stage', sceneNumber: null, chapter: null, storage: null, job: null, raw: '', preview: null, reviewedRaw: null, error: null, research: null };
@@ -43,6 +44,7 @@ const nameOf = id => state.project?.characters.find(c => c.id === id)?.name || i
 const initials = name => name.split(/\s+/).map(x => x[0]).slice(-2).join('').toLocaleUpperCase('vi');
 function avatar(c, mini = false) { return `<span class="${mini ? 'mini-avatar' : 'char-avatar'}" style="--color:${esc(c.color)}">${esc(initials(c.name))}</span>`; }
 const badge = (label, tone = '') => `<span class="badge ${tone}">${esc(label)}</span>`;
+const manuscriptUI = createManuscriptUI({ state, api, esc, icon, badge, heading, showDialog, toast, renderError, copy, loadProject, render });
 function budget(config) { return config.mode === 'batch' ? Math.ceil(config.max_turns / config.batch_size) + 1 : config.max_turns * 2 + 1; }
 
 async function loadProject(id, resetView = false) {
@@ -59,7 +61,7 @@ async function loadProject(id, resetView = false) {
 }
 function render() {
   const p = state.project;
-  const nav = [ ['stage', 'stage'], ['exchange', 'exchange'], ['characters', 'people'], ['mystery', 'lock'], ['reader', 'book'], ['world', 'world'], ['manuscript', 'book'] ];
+  const nav = [ ['stage', 'stage'], ['exchange', 'exchange'], ['characters', 'people'], ['threads', 'spark'], ['mystery', 'lock'], ['reader', 'book'], ['world', 'world'], ['manuscript', 'book'] ];
   $('#app').innerHTML = `<div class="shell">
     <aside class="sidebar" aria-label="Điều hướng chính">
       <div class="brand"><span class="brand-mark">${icon('spark')}</span>story stage<span style="color:#8d83a7;font-weight:400">.</span></div>
@@ -83,6 +85,7 @@ function renderView() {
     case 'mystery': return renderMystery();
     case 'reader': return renderReader();
     case 'manuscript': return renderManuscript();
+    case 'threads': return manuscriptUI.renderThreads();
     case 'history': return renderHistory();
     default: return renderStage();
   }
@@ -122,7 +125,7 @@ function renderError(error) {
 function renderPreview() {
   const v = state.preview;
   if (!v) return '';
-  return `<section class="panel review-panel"><div class="panel-head"><div class="panel-title">${icon('check')}<h2>Kết quả sẽ được nhập</h2></div>${badge('Cấu trúc hợp lệ', 'green')}</div><div class="panel-body">${v.import_notes?.length ? `<div class="normalization-note"><h3>Web đã chuẩn hóa bản dán</h3><ul>${v.import_notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}<details class="normalized-output"><summary>Xem JSON sẽ được lưu</summary><pre class="large-json">${esc(JSON.stringify(v.normalized_response, null, 2))}</pre><button class="btn secondary small" data-action="copy-normalized">Sao chép JSON chuẩn hóa</button></details>${v.casefile_created ? '' : v.prose ? `<div class="review-prose">${esc(v.prose)}</div>` : `<div class="review-columns"><div><h3 style="margin-bottom:12px">${v.proposed_action ? 'Hành động dự định' : 'Diễn biến mới'}</h3>${v.proposed_action ? `<div class="review-item"><strong>${esc(nameOf(v.proposed_action.actor_id))}</strong>${esc(v.proposed_action.action)}<br><br>Nội tâm: ${esc(v.proposed_action.thought)}</div>` : v.new_turns.map(t => `<div class="review-item"><strong>Lượt ${t.number} · ${esc(nameOf(t.actor_id))}</strong>${esc(t.action)}<br><br>Kết quả: ${esc(t.outcome)}${t.world_event ? `<br><br>Sự kiện: ${esc(t.world_event.text)}` : ''}</div>`).join('')}</div><div><h3 style="margin-bottom:12px">Thông tin & cảm xúc</h3>${v.reveals.map(f => `<div class="review-item"><strong>${esc(f.id)}</strong>${esc(f.text)}<br>Người biết: ${f.known_by.length ? f.known_by.map(id => esc(nameOf(id))).join(', ') : 'Chỉ Thế giới'}</div>`).join('')}${v.changed_moods.map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>${Object.entries(c.mood).map(([k, value]) => `${moods[k]}: ${value}`).join(' · ')}</div>`).join('')}${(v.changed_statuses || []).map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>Trạng thái mới: ${statuses[c.status]}</div>`).join('')}${!v.reveals.length && !v.changed_moods.length && !v.changed_statuses?.length ? '<p class="summary-text">Chưa có cập nhật sự thật hoặc cảm xúc ở bước này.</p>' : ''}</div></div>`}${renderMysteryPreview(v)}<div class="info-note">${icon('info')}<span>Cấu trúc và phạm vi người biết đã được kiểm tra. Đọc lại kết quả để xác nhận nguyên nhân, cảm giác của POV và tính hợp lý của câu chuyện.</span></div><div class="button-row right" style="margin-top:20px"><button class="btn secondary" data-action="discard-preview">Quay lại chỉnh JSON</button><button class="btn primary" data-action="commit">${icon('check')}Nhập kết quả & tiếp tục</button></div></div></section>`;
+  return `<section class="panel review-panel"><div class="panel-head"><div class="panel-title">${icon('check')}<h2>Kết quả sẽ được nhập</h2></div>${badge('Cấu trúc hợp lệ', 'green')}</div><div class="panel-body">${manuscriptUI.renderQuality(v.quality_notes)}${manuscriptUI.renderThreadChanges(v.changed_threads)}${v.import_notes?.length ? `<div class="normalization-note"><h3>Web đã chuẩn hóa bản dán</h3><ul>${v.import_notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}<details class="normalized-output"><summary>Xem JSON sẽ được lưu</summary><pre class="large-json">${esc(JSON.stringify(v.normalized_response, null, 2))}</pre><button class="btn secondary small" data-action="copy-normalized">Sao chép JSON chuẩn hóa</button></details>${v.casefile_created ? '' : v.prose ? `<div class="review-prose">${esc(v.prose)}</div>` : `<div class="review-columns"><div><h3 style="margin-bottom:12px">${v.proposed_action ? 'Hành động dự định' : 'Diễn biến mới'}</h3>${v.proposed_action ? `<div class="review-item"><strong>${esc(nameOf(v.proposed_action.actor_id))}</strong>${esc(v.proposed_action.action)}<br><br>Nội tâm: ${esc(v.proposed_action.thought)}</div>` : v.new_turns.map(t => `<div class="review-item"><strong>Lượt ${t.number} · ${esc(nameOf(t.actor_id))}</strong>${esc(t.action)}<br><br>Kết quả: ${esc(t.outcome)}${t.world_event ? `<br><br>Sự kiện: ${esc(t.world_event.text)}` : ''}</div>`).join('')}</div><div><h3 style="margin-bottom:12px">Thông tin & cảm xúc</h3>${v.reveals.map(f => `<div class="review-item"><strong>${esc(f.id)}</strong>${esc(f.text)}<br>Người biết: ${f.known_by.length ? f.known_by.map(id => esc(nameOf(id))).join(', ') : 'Chỉ Thế giới'}</div>`).join('')}${v.changed_moods.map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>${Object.entries(c.mood).map(([k, value]) => `${moods[k]}: ${value}`).join(' · ')}</div>`).join('')}${(v.changed_statuses || []).map(c => `<div class="review-item"><strong>${esc(c.name)}</strong>Trạng thái mới: ${statuses[c.status]}</div>`).join('')}${!v.reveals.length && !v.changed_moods.length && !v.changed_statuses?.length ? '<p class="summary-text">Chưa có cập nhật sự thật hoặc cảm xúc ở bước này.</p>' : ''}</div></div>`}${renderMysteryPreview(v)}<div class="info-note">${icon('info')}<span>Cấu trúc và phạm vi người biết đã được kiểm tra. Đọc lại kết quả để xác nhận nguyên nhân, cảm giác của POV và tính hợp lý của câu chuyện.</span></div><div class="button-row right" style="margin-top:20px"><button class="btn secondary" data-action="discard-preview">Quay lại chỉnh JSON</button><button class="btn primary" data-action="commit">${icon('check')}Nhập kết quả & tiếp tục</button></div></div></section>`;
 }
 function moodBars(c) { return `<div class="moods">${Object.entries(c.mood).map(([key, value]) => `<div class="mood-item"><div><span>${moods[key]}</span><span>${value}/100</span></div><div class="mood-bar"><div style="width:${value}%;--color:${esc(c.color)}"></div></div></div>`).join('')}</div>`; }
 function renderCharacters() {
@@ -132,11 +135,7 @@ function renderWorld() {
   const p = state.project;
   return `${heading('Thế giới & sự thật', 'Điều đã xảy ra được giữ nguyên. Điều một nhân vật tin có thể khác với sự thật.', badge(`${p.world.facts.length} sự thật`), 'World Agent')}<div class="world-layout"><section class="panel"><div class="panel-head"><div class="panel-title">${icon('world')}<h2>Sổ sự thật</h2></div>${badge('Góc nhìn biên tập', 'gray')}</div><div class="facts">${p.world.facts.map(f => `<article class="fact"><p>${esc(f.text)}</p><div class="fact-meta"><span>${icon(f.known_by.length === p.characters.length ? 'people' : 'lock')} ${f.known_by.length ? `Người biết: ${f.known_by.map(id => esc(nameOf(id))).join(', ')}` : 'Chỉ Thế giới biết'}</span><code>${esc(f.id)}</code></div></article>`).join('')}</div></section><section class="panel"><div class="panel-head"><div class="panel-title">${icon('settings')}<h2>Quy tắc sân khấu</h2></div></div><div class="world-setting"><h3>Bối cảnh</h3><p>${esc(p.world.setting)}</p><h3>Quy tắc bất biến</h3><ul>${p.world.rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul><div class="info-note">${icon('info')}<span>Đây là toàn bộ sự thật cho người biên tập. Prompt nhân vật ở chế độ tách chỉ nhận phần họ biết.</span></div></div></section></div>`;
 }
-function renderManuscript() {
-  const scenes = state.project.scenes.filter(s => s.prose);
-  const scene = scenes.find(s => s.number === state.chapter) || scenes.at(-1);
-  return `${heading('Bản thảo', 'Câu chuyện được viết từ những sự kiện đã diễn ra trên sân khấu.', `<button class="btn secondary" data-action="download-story">${icon('download')}Tải Markdown</button>`, state.project.name)}${!scene ? `<section class="panel page-empty"><div class="empty-icon">${icon('book')}</div><h2>Người kể chuyện đang chờ.</h2><p>Kết thúc một cảnh mô phỏng, rồi gửi prompt Người kể vào ChatGPT. Bản thảo sẽ xuất hiện ở đây khi bạn nhập câu trả lời.</p><button class="btn primary" data-action="nav" data-view="stage">${icon('stage')}Trở về sân khấu</button></section>` : `<div class="manuscript-layout"><nav class="chapter-menu" aria-label="Các cảnh bản thảo">${scenes.map(s => `<button class="${s.number === scene.number ? 'active' : ''}" data-action="chapter" data-number="${s.number}">Cảnh ${s.number}<small>${esc(s.title)}</small></button>`).join('')}</nav><article class="manuscript"><p class="eyebrow">Cảnh ${scene.number}</p><h2>${esc(scene.title)}</h2><p class="pov-note">Góc nhìn: ${esc(nameOf(scene.pov_id))} · ${esc(scene.location)}</p><div class="prose">${esc(scene.prose)}</div>${scene.editorial_check ? `<div class="editorial-note">Nguồn manh mối và phạm vi POV đã qua kiểm tra ID. Nội dung: Người kể tự kiểm tra 4 tiêu chí; vẫn cần đọc duyệt.${scene.editorial_check.notes.length ? `<p>${scene.editorial_check.notes.map(esc).join('; ')}</p>` : ''}</div>` : ''}</article></div>`}`;
-}
+function renderManuscript() { return manuscriptUI.renderManuscript(); }
 function renderCaseProgress() {
   const p = state.project, file = p.casefile;
   if (!file) return '';
@@ -193,12 +192,12 @@ let creator = null;
 function openNew(presetId) {
   creator = {
     mode: presetId ? 'preset' : 'manual', presetId: presetId || 'rain-case', presetJSON: null, presetName: null,
-    config: { mode: 'batch', max_scenes: presetId && state.presets.find(p => p.id === presetId)?.casefile ? 8 : 6, max_turns: 6, batch_size: 3, memory_limit: 12 },
+    config: { mode: 'batch', max_scenes: presetId && state.presets.find(p => p.id === presetId)?.casefile ? 8 : 6, max_turns: 6, batch_size: 6, memory_limit: 12 },
     manual: { name: '', genre: '', premise: '', setting: '', location: '', time: '',
       rules: ['Mỗi nhân vật chỉ biết những gì mình đã quan sát hoặc được kể.', 'Hành động có hệ quả theo quy tắc của thế giới; kết cục để mở.'],
-      voice: 'Văn xuôi tiếng Việt, POV giới hạn, đối thoại tự nhiên.', guidance: 'Kể từ sự kiện đã mô phỏng; để động cơ riêng dẫn dắt lựa chọn.', words: 900,
+      voice: 'Văn xuôi tiếng Việt, POV giới hạn, đối thoại tự nhiên.', guidance: 'Kể từ sự kiện đã mô phỏng; để động cơ riêng dẫn dắt lựa chọn.', words: 1500,
       characters: [blankCharacter(), blankCharacter()] },
-    brief: { name: '', genre: '', idea: '', constraints: '', character_count: 4, voice: 'Văn xuôi tiếng Việt, POV giới hạn, đối thoại tự nhiên.', words: 900 },
+    brief: { name: '', genre: '', idea: '', constraints: '', character_count: 4, voice: 'Văn xuôi tiếng Việt, POV giới hạn, đối thoại tự nhiên.', words: 1500 },
     prompt: '', raw: '', preview: null, reviewedRaw: null, error: null,
   };
   renderCreator();
@@ -292,6 +291,7 @@ document.addEventListener('click', async event => {
   const action = target.dataset.action;
   try {
     target.disabled = true;
+    if (manuscriptUI.handlesAction(action)) { await manuscriptUI.action(action, target); return; }
     switch (action) {
       case 'menu': $('.sidebar').classList.toggle('open'); break;
       case 'close': $('#dialog').close(); break;
@@ -378,6 +378,7 @@ document.addEventListener('click', async event => {
 });
 
 document.addEventListener('input', event => {
+  manuscriptUI.input(event);
   if (event.target.id === 'raw-response') {
     state.raw = event.target.value; state.preview = null; state.reviewedRaw = null;
     localStorage.setItem(`draft:${state.job.id}`, state.raw);
@@ -391,6 +392,7 @@ document.addEventListener('input', event => {
   if (form) $('#budget-count').innerHTML = `${budget(readConfig(form))} <span>lần trao đổi / cảnh</span>`;
 });
 document.addEventListener('change', event => {
+  manuscriptUI.change(event);
   if (event.target.id === 'scene-select') { state.sceneNumber = Number(event.target.value); render(); }
   if (event.target.id === 'new-preset') {
     const form = $('#new-form'), preset = state.presets.find(p => p.id === event.target.value);
@@ -403,6 +405,7 @@ document.addEventListener('change', event => {
 });
 document.addEventListener('submit', async event => {
   const form = event.target;
+  if (manuscriptUI.isForm(form.id)) { event.preventDefault(); await manuscriptUI.submit(form, event.submitter); return; }
   if (['custom-form', 'ai-brief-form'].includes(form.id)) {
     event.preventDefault();
     const submit = event.submitter;

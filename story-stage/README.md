@@ -6,6 +6,8 @@ Web **Node.js + Fastify + MySQL** để dàn dựng truyện bằng tương tác
 
 **Phase 2 đã có:** preset **Hồ sơ dưới cơn mưa**, hồ sơ quá khứ cố định, sổ manh mối có nguồn, cách hiểu riêng và thông tin đã kể cho độc giả. Xem [hướng dẫn phase 2](docs/PHASE2.md). Chọn **Dàn dựng truyện mới** để bắt đầu; hồ sơ mẫu đã sẵn sàng, không thêm lần copy/paste cho mỗi cảnh.
 
+**Phase 3 đã có:** lượt mô phỏng có hướng dẫn viết đối thoại, phản ứng và hệ quả rõ hơn; mạch truyện có nguồn; biên tập/viết lại với lịch sử phiên bản; chia chương và tạo nhánh trước cảnh. Truyện mới mặc định **6 lượt/prompt, khoảng 1.500 từ/cảnh**. Xem [hướng dẫn phase 3](docs/PHASE3.md).
+
 ## Mở ứng dụng
 
 Địa chỉ: **http://127.0.0.1:4317**.
@@ -60,8 +62,8 @@ Với **6 lượt/cảnh**:
 
 | Chế độ | Cách dùng | Tối đa lần trao đổi/cảnh |
 | --- | --- | ---: |
-| Gộp 3 lượt, mặc định | Một prompt chạy tuần tự 3 lượt, cuối cảnh có prompt Người kể | 3 |
-| Gộp 6 lượt | Một prompt mô phỏng cả cảnh, một prompt Người kể | 2 |
+| Gộp 6 lượt, mặc định truyện mới | Một prompt mô phỏng cả cảnh, một prompt Người kể | 2 |
+| Gộp 3 lượt | Một prompt chạy tuần tự 3 lượt, cuối cảnh có prompt Người kể | 3 |
 | Tách nhân vật | Một prompt nhân vật + một prompt Thế giới mỗi lượt, một prompt Người kể | 13 |
 
 Cảnh kết thúc sớm sẽ cần ít trao đổi hơn. Việc sửa JSON có thể phát sinh thêm một lần. Số từ và kích thước prompt vẫn phụ thuộc hồ sơ, ký ức và số sự kiện.
@@ -72,15 +74,24 @@ Cảnh kết thúc sớm sẽ cần ít trao đổi hơn. Việc sửa JSON có 
 
 WorldAgent chọn actor trong cùng packet và có thể đề xuất người hành động tiếp. Web dùng vòng dự phòng khi không có đề xuất, lọc/truy xuất ký ức, kiểm tra và lưu dữ liệu, tóm tắt từng người chứng kiến. Các bước này không cần gửi thêm câu hỏi. LLM quyết định hành động, kết quả và cách diễn đạt; vòng trao đổi cần thao tác của bạn, nên chưa chạy tự động khi không có người dùng.
 
+## Biên tập và kéo dài bản thảo
+
+Trong **Bản thảo → Độ dài & cách kể**, chọn số từ, giọng kể và số lượt gộp. Truyện cũ giữ thiết lập đã lưu; đổi ở đây để dùng mục tiêu mới. Prompt đang chờ giữ nội dung và số lượt cũ, thiết lập áp dụng cho các prompt được tạo sau đó. Nếu output thường bị cắt dở, giảm gộp xuống 3 lượt.
+
+Mỗi cảnh đã viết có **Sửa văn xuôi**, **Nhờ ChatGPT viết lại**, **Phiên bản & so sánh** và **Tạo nhánh trước cảnh**. Sửa hoặc khôi phục luôn tạo thêm một phiên bản, giữ được bản trước. Viết lại dùng một lần copy/paste riêng, có xem trước và so sánh; bạn có thể tiếp tục mô phỏng trong khi chờ bản viết lại. Với vụ án, sửa trích đoạn nguồn cho khớp câu chữ mới và giữ các thông tin đã tiết lộ. Để thay lựa chọn/hệ quả của nhân vật, tạo nhánh từ trạng thái trước cảnh rồi mô phỏng lại.
+
+**Chia chương** cho phép đặt tên và nhóm các cảnh đã viết theo thứ tự thời gian. Mặc định hai cảnh thành một chương; Markdown xuất bản thảo đang được chọn. **Mạch truyện** theo dõi mục tiêu, lời hứa, mâu thuẫn, nghi vấn và quan hệ cùng nguồn thay đổi. Mục tiêu ban đầu chỉ chính nhân vật biết; người vắng mặt giữ trạng thái họ từng chứng kiến.
+
 ## Những màn hình đã có
 
 - **Sân khấu:** timeline hành động → kết quả, sự kiện thế giới, nội tâm riêng, chọn cảnh cũ.
 - **Trao đổi ChatGPT:** prompt, bản dán, kiểm tra cấu trúc/ID/người biết, xem trước, nhập một lần, hủy prompt, prompt sửa lỗi.
 - **Dàn nhân vật:** tính cách, động cơ, cảm xúc 0–100, quan hệ tin tưởng −100…100, nền, giới hạn, niềm tin và dòng ký ức.
+- **Mạch truyện:** mạch đang mở/đã giải quyết/đã từ bỏ, người biết và lịch sử có nguồn.
 - **Thế giới:** luật và sổ sự thật cùng danh sách người biết từng sự thật.
 - **Hồ sơ vụ án:** sự thật nền, timeline, manh mối bề mặt/đọc lại, điều kiện tiếp cận, nguồn phát hiện và giả thuyết riêng.
 - **Góc nhìn độc giả:** trích đoạn manh mối/sự thật đã xuất hiện trong bản thảo, câu hỏi mở và đáp án có đủ chứng cứ.
-- **Bản thảo:** văn xuôi từng cảnh và POV.
+- **Bản thảo:** chương, cảnh, POV, sửa trực tiếp, viết lại, phiên bản, so sánh, khôi phục và nhánh truyện.
 - **Lịch sử prompt:** xem lại nguyên prompt và JSON đã nhập.
 - **Từ hai truyện mẫu:** nhận xét về hai văn bản và nguồn nghiên cứu.
 
@@ -96,7 +107,7 @@ npm run test:mysql
 npm audit
 ```
 
-Test MySQL dùng đúng database cấu hình hiện tại, tạo fixture với ID riêng và chỉ xóa các fixture do test đó tạo. Test kiểm tra cách ly prompt, ranh giới sự thật/niềm tin, transaction, nhập đồng thời, restart, các chế độ mô phỏng, memory và export. Kiểm tra giao diện đã đi qua tạo truyện → JSON lỗi → JSON hợp lệ → preview → commit → Người kể → bản thảo bằng dữ liệu kiểm thử do người phát triển viết; không gửi câu hỏi tới ChatGPT trong lúc kiểm thử.
+Test MySQL dùng đúng database cấu hình hiện tại, tạo fixture với ID riêng và chỉ xóa các fixture do test đó tạo. Test kiểm tra cách ly prompt, ranh giới sự thật/niềm tin, transaction, nhập đồng thời, restart, các chế độ mô phỏng, memory và export. Phase 3 bổ sung kiểm tra phiên bản, hai luồng prompt xen kẽ, lịch sử mạch theo người biết, nguồn tiết lộ và nhánh trước cảnh. Có 77 kiểm tra với file và 78 với MySQL/MariaDB. Giao diện đã được kiểm tra desktop/điện thoại qua sửa, khôi phục, viết lại, đổi trích đoạn, chia chương, đổi thiết lập và tạo nhánh. Dữ liệu kiểm thử được viết sẵn; không gửi câu hỏi tới ChatGPT hoặc đo chất lượng truyện thực tế trong lúc kiểm thử.
 
 `npm run test:mysql` dùng cấu hình riêng trong `.env.test`, cần có file này để chạy. Trên máy hiện tại, file đã được cấu hình để kiểm tra bằng tài khoản root do bạn cung cấp trên container MariaDB tại `127.0.0.1:3306`, với database riêng `story_stage_test`. File chứa mật khẩu được bỏ qua bởi Git. Cấu hình ứng dụng `.env` dùng MySQL ở cổng 3307 được giữ nguyên.
 

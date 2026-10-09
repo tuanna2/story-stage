@@ -49,6 +49,11 @@ test('Phase 2 HTTP: sáu cảnh, reader không lộ hồ sơ, audit một lần,
   // The new enum is exercised through HTTP and persisted as a pending job.
   const custom = (await request('POST', '/api/projects', { preset_id: 'interrogation' })).json(); ids.push(custom.id);
   const setup = await request('POST', `/api/projects/${custom.id}/case/jobs`, { guidance: 'Tạo manh mối từ biên bản cũ.' }); assert.equal(setup.statusCode, 200); assert.equal(setup.json().kind, 'case_setup');
+  const library = await request('GET', '/api/projects');
+  assert.equal(library.statusCode, 200, library.body);
+  assert.equal(library.json().find(p => p.id === project.id).scene_count, 6);
+  assert.equal(library.json().find(p => p.id === custom.id).scene_count, 0);
+  assert.ok(library.json().findIndex(p => p.id === custom.id) < library.json().findIndex(p => p.id === project.id));
   const second = await request('POST', `/api/projects/${custom.id}/case/jobs`, {}); assert.equal(second.statusCode, 422);
   assert.equal((await store.get(custom.id)).pending_job_id, setup.json().id);
   if (store.mode === 'mysql') {
