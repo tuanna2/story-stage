@@ -8,6 +8,7 @@ import { createProject, cleanPreset, validatePreset, nextJob, caseSetupJob, canc
 import { buildSetupPrompt, importSetup } from './creator.js';
 import { readerView } from './mystery.js';
 import { editManuscript, restoreVersion, setChapters, rewriteJob, previewRewrite, acceptRewrite, forkScene, patchWriting } from './manuscript.js';
+import { agentStatus, agentNext, agentSubmit, agentTask } from './agent.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const objectBody = properties => ({ type: 'object', properties, additionalProperties: false });
@@ -52,6 +53,10 @@ export async function buildApp({ store, logger = false } = {}) {
   });
   app.post('/api/projects', { schema: { body: objectBody({ name: { type: 'string', maxLength: 120 }, preset_id: { type: 'string' }, preset: { type: 'object' }, custom: { type: 'object' }, config: { type: 'object' } }) } }, async (req, reply) => reply.code(201).send(await store.create(createProject(req.body))));
   app.get('/api/projects/:id', { schema: { params } }, req => store.get(req.params.id));
+  app.get('/api/projects/:id/agent/status', { schema: { params } }, async req => agentStatus(await store.get(req.params.id)));
+  app.get('/api/projects/:id/agent/task', { schema: { params } }, async req => agentTask(await store.get(req.params.id)));
+  app.post('/api/projects/:id/agent/next', { schema: { params, body: objectBody({}) } }, req => store.mutate(req.params.id, agentNext));
+  app.post('/api/projects/:id/agent/jobs/:job/submit', { schema: { params: { ...params, required: ['id', 'job'] }, body: rawBody } }, req => store.mutate(req.params.id, p => agentSubmit(p, req.params.job, req.body.raw)));
   app.get('/api/projects/:id/reader', { schema: { params } }, async req => readerView(await store.get(req.params.id)));
   app.patch('/api/projects/:id/writing', { schema: { params, body: objectBody({ manuscript_revision: { type: 'integer' }, words: { type: 'integer' }, batch_size: { type: 'integer' }, voice: { type: 'string' }, guidance: { type: 'string' } }) } }, req => store.mutate(req.params.id, p => patchWriting(p, req.body)));
   app.put('/api/projects/:id/chapters', { schema: { params, body: objectBody({ manuscript_revision: { type: 'integer' }, chapters: { type: 'array' } }) } }, req => store.mutate(req.params.id, p => { setChapters(p, req.body); return p; }));

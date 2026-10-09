@@ -69,7 +69,7 @@ function render() {
       <nav>${nav.map(([v, i]) => `<button class="nav-button ${state.view === v ? 'active' : ''}" data-action="nav" data-view="${v}">${icon(i)}${labels[v]}${v === 'exchange' && state.job ? '<span class="count">1</span>' : ''}</button>`).join('')}</nav>
       <div class="library"><p class="sidebar-label">Truyện của bạn</p><div class="project-list">${state.projects.map(x => `<button class="project-link ${p?.id === x.id ? 'selected' : ''}" data-action="project" data-id="${esc(x.id)}" title="${esc(x.name)}">${esc(x.name)}</button>`).join('')}</div><button class="new-project" data-action="new">${icon('plus')}Dàn dựng truyện mới</button></div>
       <div class="library"><button class="nav-button ${state.view === 'history' ? 'active' : ''}" data-action="nav" data-view="history">${icon('history')}${labels.history}</button><button class="nav-button ${state.view === 'research' ? 'active' : ''}" data-action="nav" data-view="research">${icon('research')}${labels.research}</button></div>
-      <div class="sidebar-bottom"><strong>${state.storage === 'mysql' ? 'Lưu bằng MySQL' : 'Bản thử · lưu trong file'}</strong>Trao đổi thủ công với ChatGPT</div>
+      <div class="sidebar-bottom"><strong>${state.storage === 'mysql' ? 'Lưu bằng MySQL' : 'Bản thử · lưu trong file'}</strong>ChatGPT thủ công · AI Agent</div>
     </aside>
     <main class="main"><header class="topbar"><div class="breadcrumb"><button class="mobile-menu" data-action="menu" aria-label="Mở điều hướng">${icon('menu')}</button><span>Phòng viết</span><span style="color:#b8b2c6">/</span><strong>${esc(p?.name || 'Sân khấu mới')}</strong></div><div class="topbar-right"><span class="local-label">Không cần API key</span>${p ? `<button class="btn secondary small" data-action="export">${icon('download')}Xuất truyện</button>` : ''}<span class="avatar" title="Phòng viết của bạn">TV</span></div></header>
     <div class="content">${state.view === 'research' ? renderResearch() : !p ? renderWelcome() : renderView()}</div></main></div>`;
@@ -97,7 +97,7 @@ function renderStage() {
   const p = state.project, s = selectedScene(), active = current();
   const completed = p.scenes.filter(s => s.status === 'complete').length;
   const stat = (i, label, value) => `<div class="stat"><div class="stat-icon">${icon(i)}</div><div><p class="stat-label">${label}</p><p class="stat-value">${value}</p></div></div>`;
-  return `${heading('Sân khấu câu chuyện', 'Theo dõi những gì đã xảy ra, trước khi chúng trở thành văn xuôi.', `<button class="btn secondary" data-action="setup">${icon('settings')}Dàn dựng</button>`, p.genre)}
+  return `${heading('Sân khấu câu chuyện', 'Theo dõi những gì đã xảy ra, trước khi chúng trở thành văn xuôi.', `${p.status !== 'complete' ? `<button class="btn primary" data-action="agent">${icon('spark')}Viết hết bằng AI Agent</button>` : ''}<button class="btn secondary" data-action="setup">${icon('settings')}Dàn dựng</button>`, p.genre)}
   ${p.fixture_notice ? `<div class="sample-box">${esc(p.fixture_notice)}</div>` : ''}${renderCaseProgress()}<div class="stats-row">${stat('stage', 'Cảnh đã viết', `${completed} <span>/ ${p.config.max_scenes}</span>`)}${stat('people', 'Nhân vật tự chủ', `${p.characters.length}`)}${stat('exchange', 'Lượt trong cảnh', `${active.turns.length} <span>/ ${p.config.max_turns}</span>`)}${stat('book', 'Số từ bản thảo', `${p.scenes.map(s => s.prose || '').join(' ').trim().split(/\s+/).filter(Boolean).length.toLocaleString('vi')}`)}</div>
   <div class="workspace"><section class="panel"><div class="panel-head"><div class="panel-title">${icon('stage')}<h2>Cảnh ${s.number}</h2>${badge(s.status === 'complete' ? 'Đã viết' : s.status === 'awaiting_narration' ? 'Chờ người kể' : 'Đang mô phỏng', s.status === 'complete' ? 'green' : '')}</div><select class="scene-select" id="scene-select" aria-label="Chọn cảnh">${p.scenes.map(x => `<option value="${x.number}" ${s.number === x.number ? 'selected' : ''}>Cảnh ${x.number}${x.title ? ` · ${esc(x.title)}` : ''}</option>`).join('')}</select></div>
   <div class="stage-top"><div class="scene-meta"><span>${icon('pin')}${esc(s.location)}</span><span>${icon('clock')}${esc(s.time)}</span>${s.pov_id ? `<span>${icon('book')}POV: ${esc(nameOf(s.pov_id))}</span>` : ''}</div><h2>${esc(s.title || 'Trước khi màn mở')}</h2><p class="scene-description">${esc(s.atmosphere || p.premise)}</p><div class="cast-line">${p.characters.map(c => avatar(c, true)).join('')}<small>${p.characters.map(c => esc(c.name)).join(' · ')}</small></div></div>
@@ -284,6 +284,10 @@ async function next() {
   state.view = 'exchange'; state.preview = null; state.error = null;
   render(); window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+async function openAgent() {
+  const task = await api(`/projects/${state.project.id}/agent/task`);
+  showDialog('Viết hết bằng AI Agent', `<p class="plain-text">Sao chép yêu cầu dưới đây vào Codex hoặc Agent có quyền đọc file và chạy lệnh trong dự án này. Agent sẽ tự mô phỏng, viết các cảnh còn lại và lưu DB; bạn không cần dán từng output.</p><div class="info-note">${icon('info')}<span>Đã viết ${task.completed_scenes}/${task.max_scenes} cảnh. Web và DB cần đang chạy trên cùng máy Agent có thể truy cập. Skill chạy trong phiên Agent đang hoạt động.</span></div><label class="field" style="margin-top:20px"><span>Yêu cầu giao cho Agent</span><textarea id="agent-task" aria-label="Yêu cầu giao cho Agent" class="prompt-text" rows="10" readonly>${esc(task.task)}</textarea></label>`, '<small>Không cần API key. Tiến độ được lưu sau mỗi bước hợp lệ.</small><button class="btn secondary" data-action="agent-refresh">Cập nhật tiến độ</button><button class="btn primary" data-action="copy-agent-task">Sao chép yêu cầu cho Agent</button>');
+}
 
 document.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]');
@@ -331,6 +335,9 @@ document.addEventListener('click', async event => {
       case 'project': await loadProject(target.dataset.id, true); break;
       case 'nav': state.view = target.dataset.view; if (state.view === 'research' && !state.research) state.research = await api('/research'); render(); break;
       case 'next': await next(); break;
+      case 'agent': await openAgent(); break;
+      case 'copy-agent-task': await copy($('#agent-task').value); break;
+      case 'agent-refresh': $('#dialog').close(); await loadProject(state.project.id, true); toast('Đã cập nhật tiến độ từ DB.'); break;
       case 'character': openCharacter(target.dataset.id); break;
       case 'chapter': state.chapter = Number(target.dataset.number); render(); break;
       case 'export': openExport(); break;

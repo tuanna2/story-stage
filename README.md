@@ -1,6 +1,6 @@
 # Story Stage
 
-Ứng dụng Node.js + Fastify + MySQL để mô phỏng truyện từ các nhân vật có động cơ, cảm xúc và ký ức riêng. Trao đổi với ChatGPT bằng sao chép prompt và dán JSON, không cần API key.
+Ứng dụng Node.js + Fastify + MySQL để mô phỏng truyện từ các nhân vật có động cơ, cảm xúc và ký ức riêng. Trao đổi với ChatGPT bằng sao chép prompt/dán JSON, hoặc dùng [skill story-stage-writer](.agents/skills/story-stage-writer/SKILL.md) để AI Agent tự viết hết và lưu DB, không cần API key.
 
 Mã nguồn nằm trong [`story-stage/`](story-stage/). Phase 2 bổ sung hồ sơ vụ án cố định, manh mối có nguồn, giả thuyết riêng và thông tin đã kể cho độc giả.
 

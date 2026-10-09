@@ -16,7 +16,7 @@ Phase 3 bổ sung chất liệu, mạch riêng, phiên bản văn xuôi, chươn
 | Manual LLM bridge | Đóng gói prompt, nhận và xác thực JSON | Chỉ commit packet hợp lệ đúng job/revision |
 | Scheduler | Ưu tiên actor World chọn; dự phòng theo vòng, bỏ người vắng/chết | Gợi ý actor cho prompt; không tạo hành động |
 
-Ứng dụng không chạy các worker LLM độc lập tự động. “Agent” ở đây là một vai trò có trạng thái và phạm vi dữ liệu riêng. Mode `batch` mô phỏng nhiều vai trong một câu trả lời; mode `isolated` tách prompt và lưu ý định trước khi WorldAgent phân xử.
+Ứng dụng không chạy các worker LLM độc lập tự động. “Agent” trong mô phỏng là một vai trò có trạng thái và phạm vi dữ liệu riêng. Mode `batch` mô phỏng nhiều vai trong một câu trả lời; mode `isolated` tách prompt và lưu ý định trước khi WorldAgent phân xử. Có thể copy/paste thủ công hoặc dùng [skill viết hết truyện](AGENT-WRITER.md) để một Agent có shell/filesystem tự lấy job, viết output và lưu qua backend. Skill không tạo cách ly kỹ thuật giữa các vai trong cùng phiên Agent.
 
 ## Luồng gộp lượt
 

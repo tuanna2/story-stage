@@ -1,0 +1,4 @@
+interface:
+  display_name: "Story Stage Writer"
+  short_description: "Viết hết truyện Story Stage và lưu vào DB"
+  default_prompt: "Dùng $story-stage-writer để viết hết truyện Story Stage được chọn và lưu DB."

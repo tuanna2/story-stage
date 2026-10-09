@@ -1,6 +1,6 @@
 # Story Stage
 
-Web **Node.js + Fastify + MySQL** để dàn dựng truyện bằng tương tác của nhân vật. Trao đổi với ChatGPT bằng **sao chép prompt / dán JSON**, không gọi API, không cần API key.
+Web **Node.js + Fastify + MySQL** để dàn dựng truyện bằng tương tác của nhân vật. Trao đổi với ChatGPT bằng **sao chép prompt / dán JSON**, hoặc giao **AI Agent viết hết và lưu DB bằng skill**, không gọi API mô hình, không cần API key.
 
 Đã đọc hai văn bản gốc trong thư mục cha và tạo hai tình huống mở dựa trên cơ chế kể chuyện của chúng. Đọc [phân tích hai mẫu](docs/STORY-ANALYSIS.md) và [kiến trúc, hợp đồng dữ liệu](docs/ARCHITECTURE.md).
 
@@ -72,7 +72,15 @@ Cảnh kết thúc sớm sẽ cần ít trao đổi hơn. Việc sửa JSON có 
 
 **Tách nhân vật** chỉ đưa dữ liệu riêng của người đang hành động vào prompt. Dùng một cuộc trò chuyện ChatGPT riêng cho mỗi nhân vật; một cuộc khác cho Thế giới. Với Người kể, dùng cuộc mới khi đổi POV, để lịch sử trước không chứa nội tâm của POV cũ. Các prompt có đủ trạng thái để mở cuộc trò chuyện mới khi cần.
 
-WorldAgent chọn actor trong cùng packet và có thể đề xuất người hành động tiếp. Web dùng vòng dự phòng khi không có đề xuất, lọc/truy xuất ký ức, kiểm tra và lưu dữ liệu, tóm tắt từng người chứng kiến. Các bước này không cần gửi thêm câu hỏi. LLM quyết định hành động, kết quả và cách diễn đạt; vòng trao đổi cần thao tác của bạn, nên chưa chạy tự động khi không có người dùng.
+WorldAgent chọn actor trong cùng packet và có thể đề xuất người hành động tiếp. Web dùng vòng dự phòng khi không có đề xuất, lọc/truy xuất ký ức, kiểm tra và lưu dữ liệu, tóm tắt từng người chứng kiến. Các bước này không cần gửi thêm câu hỏi. Luồng ChatGPT thủ công cần copy/paste; skill bên dưới cho Agent tự làm vòng trao đổi đến khi truyện hoàn tất.
+
+## Giao AI Agent viết hết và lưu DB
+
+Trên **Sân khấu → Viết hết bằng AI Agent**, chọn **Sao chép yêu cầu cho Agent** rồi gửi một lần vào Codex hoặc Agent có quyền đọc file/chạy lệnh trong dự án. Agent tự viết các output, kiểm tra và lưu qua Fastify cho đến khi `status=complete`; không cần bạn dán từng output hoặc duyệt từng cảnh.
+
+Skill [story-stage-writer](../.agents/skills/story-stage-writer/SKILL.md) nằm trong repo. Yêu cầu sao chép đã có project ID và đường dẫn skill/CLI. Có thể gọi trực tiếp: **Dùng $story-stage-writer để viết hết truyện PROJECT_ID và lưu DB.** Đọc [hướng dẫn Agent](docs/AGENT-WRITER.md) cho CLI và cách tiếp tục khi gián đoạn.
+
+Web/MySQL và phiên Agent cần đang chạy. Nút trên web tạo yêu cầu giao việc; nó không tự khởi động một mô hình. Mỗi job hợp lệ lưu tiến độ và log vào DB; hết cảnh lưu văn xuôi có phiên bản. Agent tiếp tục từ job đang chờ, giữ các cảnh đã viết và xuất bản thảo khi xong. Gửi lại cùng output không tạo lượt trùng, output lỗi không đổi trạng thái. Ngữ cảnh chế độ gộp vẫn được phân vai bằng chỉ dẫn.
 
 ## Biên tập và kéo dài bản thảo
 
@@ -107,7 +115,7 @@ npm run test:mysql
 npm audit
 ```
 
-Test MySQL dùng đúng database cấu hình hiện tại, tạo fixture với ID riêng và chỉ xóa các fixture do test đó tạo. Test kiểm tra cách ly prompt, ranh giới sự thật/niềm tin, transaction, nhập đồng thời, restart, các chế độ mô phỏng, memory và export. Phase 3 bổ sung kiểm tra phiên bản, hai luồng prompt xen kẽ, lịch sử mạch theo người biết, nguồn tiết lộ và nhánh trước cảnh. Có 80 kiểm tra với file và 81 với MySQL/MariaDB. Giao diện đã được kiểm tra desktop/điện thoại qua sửa, khôi phục, viết lại, đổi trích đoạn, chia chương, đổi thiết lập và tạo nhánh. Dữ liệu kiểm thử được viết sẵn; không gửi câu hỏi tới ChatGPT hoặc đo chất lượng truyện thực tế trong lúc kiểm thử.
+Test MySQL dùng đúng database cấu hình hiện tại, tạo fixture với ID riêng và chỉ xóa các fixture do test đó tạo. Test kiểm tra cách ly prompt, ranh giới sự thật/niềm tin, transaction, nhập đồng thời, restart, các chế độ mô phỏng, memory và export. Phase 3 bổ sung kiểm tra phiên bản, hai luồng prompt xen kẽ, lịch sử mạch theo người biết, nguồn tiết lộ và nhánh trước cảnh. Luồng Agent bổ sung kiểm tra CLI qua HTTP, tiếp tục job, rollback, gửi lại, hoàn tất và export. Có 84 kiểm tra với file và 85 với MySQL/MariaDB. Giao diện đã được kiểm tra desktop/điện thoại qua sửa, khôi phục, viết lại, đổi trích đoạn, chia chương, đổi thiết lập và tạo nhánh. Dữ liệu unit/API được viết sẵn; các kiểm tra không chứng minh mọi truyện Agent viết đều đạt chất lượng của truyện tham khảo.
 
 `npm run test:mysql` dùng cấu hình riêng trong `.env.test`, cần có file này để chạy. Trên máy hiện tại, file đã được cấu hình để kiểm tra bằng tài khoản root do bạn cung cấp trên container MariaDB tại `127.0.0.1:3306`, với database riêng `story_stage_test`. File chứa mật khẩu được bỏ qua bởi Git. Cấu hình ứng dụng `.env` dùng MySQL ở cổng 3307 được giữ nguyên.
 
